@@ -14,6 +14,19 @@ export interface TurnoPaciente {
   prioridad?: "preferencial" | "urgencia" | null;
 }
 
+export function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+  const match = url.match(regExp);
+  return match && match[1].length === 11 ? match[1] : null;
+}
+
+export function getYouTubeEmbedUrl(url?: string): string {
+  const videoId = url ? extractYouTubeId(url) : null;
+  if (!videoId) return "";
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&playsinline=1&enablejsapi=1`;
+}
+
 export type MediaContentType = "youtube" | "video_mp4" | "banner_slideshow";
 export type ChimeToneType = "dingdong" | "double_bell" | "synth_chord" | "urgent_pulse";
 export type ClinicThemeColor = "blue" | "emerald" | "purple" | "slate";
@@ -59,6 +72,7 @@ export type ClinicMediaSettings = {
   selectedVoiceURI: string;
   voiceRate: number;
   voicePitch: number;
+  activePersonaId?: string;
 };
 
 export const DEFAULT_AD_BANNERS: AdBanner[] = [
@@ -153,30 +167,52 @@ export const DEFAULT_MEDIA_SETTINGS: ClinicMediaSettings = {
   selectedVoiceURI: "",
   voiceRate: 0.86,
   voicePitch: 1.0,
+  activePersonaId: "female-valeria",
 };
 
 const STORAGE_KEY = "nexus_turnos_queue";
+const MEDIA_SETTINGS_STORAGE_KEY = "nexus_clinic_media_settings";
 const CHANNEL_NAME = "nexus_clinic_tv_channel";
 
+export function getMediaSettingsFromStorage(): ClinicMediaSettings {
+  if (typeof window === "undefined") return DEFAULT_MEDIA_SETTINGS;
+  try {
+    const raw = localStorage.getItem(MEDIA_SETTINGS_STORAGE_KEY);
+    if (!raw) return DEFAULT_MEDIA_SETTINGS;
+    return { ...DEFAULT_MEDIA_SETTINGS, ...JSON.parse(raw) };
+  } catch (e) {
+    return DEFAULT_MEDIA_SETTINGS;
+  }
+}
+
+export function saveMediaSettingsToStorage(settings: ClinicMediaSettings) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(MEDIA_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch (e) {
+    console.warn("Error guardando configuración de medios:", e);
+  }
+}
+
 export const broadcastChannel = typeof window !== "undefined" ? new BroadcastChannel(CHANNEL_NAME) : null;
+
+export const DEMO_TURNOS: TurnoPaciente[] = [
+  { id: "1", nombre: "Jessica Jiménez Mora", doctorNombre: "Dr. Roberto Chaverri", especialidad: "Medicina General", consultorio: "1", horaCita: "08:30", estado: "en_espera", ticketNumero: "A-01", prioridad: null },
+  { id: "2", nombre: "Mauricio Valle Arguedas", doctorNombre: "Dr. Roberto Chaverri", especialidad: "Medicina General", consultorio: "1", horaCita: "08:45", estado: "en_espera", ticketNumero: "A-04", prioridad: null },
+  { id: "3", nombre: "Johnny Pérez Morales", doctorNombre: "Dra. Sofía Huertas", especialidad: "Pediatría", consultorio: "2", horaCita: "09:00", estado: "en_espera", ticketNumero: "P-02", prioridad: "preferencial" },
+  { id: "4", nombre: "Gabriel Céspedes Ruiz", doctorNombre: "Dra. Sofía Huertas", especialidad: "Pediatría", consultorio: "2", horaCita: "09:15", estado: "en_espera", ticketNumero: "P-05", prioridad: "preferencial" },
+  { id: "5", nombre: "Mayra Figueroa Castillo", doctorNombre: "Dra. Carmen Figueroa", especialidad: "Ginecología", consultorio: "3", horaCita: "09:30", estado: "en_espera", ticketNumero: "U-03", prioridad: "urgencia" },
+  { id: "6", nombre: "Karla Vargas Solís", doctorNombre: "Dra. Carmen Figueroa", especialidad: "Ginecología", consultorio: "3", horaCita: "09:45", estado: "en_espera", ticketNumero: "A-06", prioridad: null },
+  { id: "7", nombre: "Esteban Mora Chaves", doctorNombre: "Dr. Andrés Salazar", especialidad: "Odontología", consultorio: "4", horaCita: "10:00", estado: "en_espera", ticketNumero: "A-07", prioridad: null },
+];
 
 export function getTurnosFromStorage(): { turnos: TurnoPaciente[]; ultimoLlamado: TurnoPaciente | null } {
   if (typeof window === "undefined") return { turnos: [], ultimoLlamado: null };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      // Datos iniciales de demostración si está vacío
-      const demo: TurnoPaciente[] = [
-        { id: "1", nombre: "Jessica Jiménez Mora", doctorNombre: "Dr. Roberto Chaverri", especialidad: "Medicina General", consultorio: "1", horaCita: "08:30", estado: "en_espera", ticketNumero: "A-01", prioridad: null },
-        { id: "2", nombre: "Mauricio Valle Arguedas", doctorNombre: "Dr. Roberto Chaverri", especialidad: "Medicina General", consultorio: "1", horaCita: "08:45", estado: "en_espera", ticketNumero: "A-04", prioridad: null },
-        { id: "3", nombre: "Johnny Pérez Morales", doctorNombre: "Dra. Sofía Huertas", especialidad: "Pediatría", consultorio: "2", horaCita: "09:00", estado: "en_espera", ticketNumero: "P-02", prioridad: "preferencial" },
-        { id: "4", nombre: "Gabriel Céspedes Ruiz", doctorNombre: "Dra. Sofía Huertas", especialidad: "Pediatría", consultorio: "2", horaCita: "09:15", estado: "en_espera", ticketNumero: "P-05", prioridad: "preferencial" },
-        { id: "5", nombre: "Mayra Figueroa Castillo", doctorNombre: "Dra. Carmen Figueroa", especialidad: "Ginecología", consultorio: "3", horaCita: "09:30", estado: "en_espera", ticketNumero: "U-03", prioridad: "urgencia" },
-        { id: "6", nombre: "Karla Vargas Solís", doctorNombre: "Dra. Carmen Figueroa", especialidad: "Ginecología", consultorio: "3", horaCita: "09:45", estado: "en_espera", ticketNumero: "A-06", prioridad: null },
-        { id: "7", nombre: "Esteban Mora Chaves", doctorNombre: "Dr. Andrés Salazar", especialidad: "Odontología", consultorio: "4", horaCita: "10:00", estado: "en_espera", ticketNumero: "A-07", prioridad: null },
-      ];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ turnos: demo, ultimoLlamado: null }));
-      return { turnos: demo, ultimoLlamado: null };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ turnos: DEMO_TURNOS, ultimoLlamado: null }));
+      return { turnos: DEMO_TURNOS, ultimoLlamado: null };
     }
     return JSON.parse(raw);
   } catch (e) {
@@ -193,6 +229,32 @@ export function saveTurnosToStorage(data: { turnos: TurnoPaciente[]; ultimoLlama
   }
 }
 
+export function clearTurnosQueue(): { turnos: TurnoPaciente[]; ultimoLlamado: TurnoPaciente | null } {
+  const emptyState = { turnos: [], ultimoLlamado: null };
+  saveTurnosToStorage(emptyState);
+  if (broadcastChannel) {
+    broadcastChannel.postMessage({
+      type: "CLEAR_QUEUE",
+      payload: {},
+      timestamp: Date.now(),
+    });
+  }
+  return emptyState;
+}
+
+export function resetToDemoTurnos(): { turnos: TurnoPaciente[]; ultimoLlamado: TurnoPaciente | null } {
+  const demoState = { turnos: DEMO_TURNOS, ultimoLlamado: null };
+  saveTurnosToStorage(demoState);
+  if (broadcastChannel) {
+    broadcastChannel.postMessage({
+      type: "RESET_QUEUE",
+      payload: demoState,
+      timestamp: Date.now(),
+    });
+  }
+  return demoState;
+}
+
 export function emitLlamadoEvent(paciente: TurnoPaciente) {
   if (broadcastChannel) {
     broadcastChannel.postMessage({
@@ -207,6 +269,16 @@ export function emitFinalizarEvent(officeId: string) {
   if (broadcastChannel) {
     broadcastChannel.postMessage({
       type: "FINALIZAR_CONSULTA",
+      payload: { consultorio: officeId },
+      timestamp: Date.now(),
+    });
+  }
+}
+
+export function emitCancelarLlamadoEvent(officeId: string) {
+  if (broadcastChannel) {
+    broadcastChannel.postMessage({
+      type: "CANCELAR_LLAMADO",
       payload: { consultorio: officeId },
       timestamp: Date.now(),
     });

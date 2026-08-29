@@ -21,10 +21,205 @@ import {
   TurnoPaciente, 
   getTurnosFromStorage, 
   saveTurnosToStorage, 
-  broadcastChannel 
+  broadcastChannel,
+  getMediaSettingsFromStorage,
+  type ClinicMediaSettings,
+  DEFAULT_MEDIA_SETTINGS,
+  getYouTubeEmbedUrl,
+  type AdBanner,
+  extractYouTubeId,
 } from "@/lib/queueStore";
+import { getLocalVideoBlob } from "@/lib/mediaStorage";
 import { speakPatientCallAsync, playChime } from "@/lib/soundService";
 import { useClinicConfig } from "@/hooks/useClinicConfig";
+
+// Componente de carrusel de afiches
+const BannerSlideshow = ({ banners, durationSeconds }: { banners: AdBanner[]; durationSeconds: number }) => {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const timer = setInterval(() => {
+      setIdx((prev) => (prev + 1) % banners.length);
+    }, durationSeconds * 1000);
+    return () => clearInterval(timer);
+  }, [banners.length, durationSeconds]);
+  const banner = banners[idx % banners.length];
+  if (!banner) return null;
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 overflow-hidden">
+      <img
+        key={banner.id}
+        src={banner.imageUrl}
+        alt={banner.title}
+        className="w-full h-full object-cover transition-opacity duration-700"
+      />
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-6 py-4">
+        <p className="text-white font-black text-xl truncate drop-shadow">{banner.title}</p>
+        {banner.sponsorName && <p className="text-slate-300 text-sm font-semibold truncate">{banner.sponsorName}</p>}
+        <div className="flex gap-1.5 mt-2">
+          {banners.map((_, i) => (
+            <span key={i} className={`h-1.5 rounded-full transition-all ${i === idx ? "w-6 bg-white" : "w-1.5 bg-white/40"}`} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Componente Universal de Visualización Multimedia (Soporta Rotación Continua de YouTube Presets, Comerciales MP4 y Blobs locales)
+const ClinicMediaDisplay = ({ mediaSettings }: { mediaSettings: ClinicMediaSettings }) => {
+  const [blobUrl, setBlobUrl] = useState<string>("");
+  const [playlistIdx, setPlaylistIdx] = useState<number>(0);
+
+  const isYouTubeMode = mediaSettings.mediaType === "youtube";
+  const isMp4Mode = mediaSettings.mediaType === "video_mp4";
+
+  // Lista activa de items a rotar
+  const currentPlaylist = isYouTubeMode
+    ? (mediaSettings.videoPresets && mediaSettings.videoPresets.length > 0 ? mediaSettings.videoPresets : [])
+    : isMp4Mode
+    ? (mediaSettings.videoPlaylist && mediaSettings.videoPlaylist.length > 0 ? mediaSettings.videoPlaylist : [])
+    : [];
+
+  const isPlaylistActive = currentPlaylist.length > 1;
+
+  // Sincronizar índice inicial si se seleccionó un video o preset específico
+  useEffect(() => {
+    if (currentPlaylist.length > 0) {
+      const targetUrl = isYouTubeMode ? mediaSettings.youtubeUrl : mediaSettings.directVideoUrl;
+      if (targetUrl) {
+        const idx = currentPlaylist.findIndex((v) => v.url === targetUrl);
+        if (idx !== -1) setPlaylistIdx(idx);
+      }
+    }
+  }, [mediaSettings.youtubeUrl, mediaSettings.directVideoUrl, isYouTubeMode, currentPlaylist.length]);
+
+  const currentItem = currentPlaylist.length > 0
+    ? currentPlaylist[playlistIdx % currentPlaylist.length]
+    : null;
+
+  const activeUrl = currentItem
+    ? currentItem.url
+    : isYouTubeMode
+    ? mediaSettings.youtubeUrl || ""
+    : mediaSettings.directVideoUrl || "";
+
+  const handleNextVideo = () => {
+    if (currentPlaylist.length > 1) {
+      setPlaylistIdx((prev) => (prev + 1) % currentPlaylist.length);
+    }
+  };
+
+  // Rotación automática por temporizador para playlist (MP4 o YouTube)
+  useEffect(() => {
+    if (!isPlaylistActive) return;
+    const itemDuration = (currentItem as any)?.durationSeconds;
+    // Si tiene duración configurada la usamos (ej. 5s, 10s, 15s, 30s), de lo contrario 20s para MP4 o 45s para YouTube
+    const duration = (itemDuration && itemDuration > 0 ? itemDuration : isYouTubeMode ? 45 : 20) * 1000;
+    const timer = setTimeout(() => {
+      handleNextVideo();
+    }, duration);
+    return () => clearTimeout(timer);
+  }, [isPlaylistActive, playlistIdx, currentPlaylist.length, (currentItem as any)?.durationSeconds, isYouTubeMode]);
+
+  // Escuchar evento de finalización del reproductor de YouTube (para rotar al siguiente video de YouTube)
+  useEffect(() => {
+    const handleYTMessage = (e: MessageEvent) => {
+      try {
+        if (typeof e.data === "string") {
+          const data = JSON.parse(e.data);
+          // YT.PlayerState.ENDED is 0
+          if (data.event === "onStateChange" && data.info === 0) {
+            handleNextVideo();
+          }
+        }
+      } catch {
+        // ignorar mensajes no json
+      }
+    };
+    window.addEventListener("message", handleYTMessage);
+    return () => window.removeEventListener("message", handleYTMessage);
+  }, [currentPlaylist.length]);
+
+  // Cargar blob si es IndexedDB
+  useEffect(() => {
+    let active = true;
+    if (activeUrl.startsWith("indexeddb://")) {
+      const key = activeUrl.replace("indexeddb://", "");
+      getLocalVideoBlob(key).then((blob) => {
+        if (blob && active) {
+          setBlobUrl(URL.createObjectURL(blob));
+        }
+      });
+    } else {
+      setBlobUrl("");
+    }
+    return () => {
+      active = false;
+    };
+  }, [activeUrl]);
+
+  if (mediaSettings.mediaType === "banner_slideshow" && mediaSettings.adBanners && mediaSettings.adBanners.length > 0) {
+    return <BannerSlideshow banners={mediaSettings.adBanners} durationSeconds={mediaSettings.slideDurationSeconds || 12} />;
+  }
+
+  const ytId = extractYouTubeId(activeUrl);
+  const currentTitle = (currentItem as any)?.name || (currentItem as any)?.title || "Video";
+
+  return (
+    <div className="relative size-full bg-black overflow-hidden flex items-center justify-center">
+      {ytId ? (
+        <iframe
+          key={`${ytId}-${playlistIdx}`}
+          src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&loop=0&controls=1&playsinline=1&enablejsapi=1`}
+          title={currentTitle}
+          className="size-full absolute inset-0 border-0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        />
+      ) : activeUrl.startsWith("indexeddb://") && blobUrl ? (
+        <video
+          key={`${blobUrl}-${playlistIdx}`}
+          src={blobUrl}
+          autoPlay
+          muted
+          playsInline
+          controls
+          onEnded={handleNextVideo}
+          className="size-full absolute inset-0 object-cover"
+        />
+      ) : activeUrl && (activeUrl.startsWith("http://") || activeUrl.startsWith("https://") || activeUrl.startsWith("blob:")) ? (
+        <video
+          key={`${activeUrl}-${playlistIdx}`}
+          src={activeUrl}
+          autoPlay
+          muted
+          playsInline
+          controls
+          onEnded={handleNextVideo}
+          className="size-full absolute inset-0 object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-600">
+          <span className="text-4xl">📺</span>
+          <span className="text-sm font-bold text-slate-500 text-center">Sin contenido configurado</span>
+        </div>
+      )}
+
+      {/* Indicador de lista de reproducción continua */}
+      {isPlaylistActive && (
+        <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-xl border border-rose-500/30 text-xs text-white shadow-lg pointer-events-none">
+          <span className="size-2 rounded-full bg-rose-500 animate-pulse" />
+          <span className="font-bold text-rose-300">
+            {isYouTubeMode ? "YouTube" : "Comercial"} {(playlistIdx % currentPlaylist.length) + 1}/{currentPlaylist.length}:
+          </span>
+          <span className="text-slate-200 font-medium truncate max-w-[200px]">
+            {currentTitle}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const PantallaTV = () => {
   const { data: clinicConfig } = useClinicConfig();
@@ -32,6 +227,7 @@ export const PantallaTV = () => {
   const [activeSpeakingPatient, setActiveSpeakingPatient] = useState<TurnoPaciente | null>(null);
   const [historialLlamados, setHistorialLlamados] = useState<TurnoPaciente[]>([]);
   const [isBlinking, setIsBlinking] = useState(false);
+  const [mediaSettings, setMediaSettings] = useState<ClinicMediaSettings>(getMediaSettingsFromStorage);
   const isIframePreview = typeof window !== "undefined" && (window.self !== window.top || window.location.search.includes("preview=true"));
   const [soundEnabled, setSoundEnabled] = useState(!isIframePreview);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -96,23 +292,35 @@ export const PantallaTV = () => {
 
     if (soundEnabledRef.current) {
       try {
+        if (mediaSettings.chimeTone) {
+          playChime(mediaSettings.chimeTone);
+        }
+        await new Promise((r) => setTimeout(r, 500));
         await speakPatientCallAsync(
           nextPatient.nombre,
           nextPatient.doctorNombre,
-          nextPatient.consultorio
+          nextPatient.consultorio ? `Consultorio ${nextPatient.consultorio}` : undefined,
+          nextPatient.ticketNumero,
+          "full",
+          mediaSettings.selectedVoiceURI,
+          mediaSettings.voiceRate,
+          mediaSettings.voicePitch,
+          mediaSettings.activePersonaId
         );
+        await new Promise((r) => setTimeout(r, 800));
       } catch (err) {
         console.warn("Error en audio TV:", err);
+        await new Promise((r) => setTimeout(r, 3000));
       }
+    } else {
+      await new Promise((r) => setTimeout(r, 4500));
     }
 
-    setTimeout(() => {
-      setIsBlinking(false);
-      isSpeakingRef.current = false;
-      if (pendingQueueRef.current.length > 0) {
-        processAudioQueue();
-      }
-    }, 2500);
+    setIsBlinking(false);
+    isSpeakingRef.current = false;
+    if (pendingQueueRef.current.length > 0) {
+      processAudioQueue();
+    }
   };
 
   const soundEnabledRef = useRef(soundEnabled);
@@ -129,15 +337,28 @@ export const PantallaTV = () => {
         const paciente = event.data.payload as TurnoPaciente;
         pendingQueueRef.current.push(paciente);
         processAudioQueue();
-      } else if (event.data?.type === "FINALIZAR_CONSULTA") {
+      } else if (event.data?.type === "FINALIZAR_CONSULTA" || event.data?.type === "CANCELAR_LLAMADO") {
         const { consultorio } = event.data.payload || {};
         setActiveSpeakingPatient((prev) => (prev?.consultorio === consultorio ? null : prev));
         const data = getTurnosFromStorage();
         setTurnos(data.turnos);
         const atendidos = data.turnos.filter((t) => t.estado === "atendido" || t.estado === "llamado");
         setHistorialLlamados(atendidos);
+      } else if (event.data?.type === "CLEAR_QUEUE") {
+        pendingQueueRef.current = [];
+        setActiveSpeakingPatient(null);
+        setTurnos([]);
+        setHistorialLlamados([]);
+      } else if (event.data?.type === "RESET_QUEUE") {
+        pendingQueueRef.current = [];
+        const data = getTurnosFromStorage();
+        setTurnos(data.turnos);
+        setActiveSpeakingPatient(data.ultimoLlamado);
+        setHistorialLlamados([]);
       } else if (event.data?.type === "UPDATE_MARQUEE") {
         setMarqueeText(event.data.payload);
+      } else if (event.data?.type === "UPDATE_MEDIA_SETTINGS") {
+        setMediaSettings(event.data.payload);
       }
     };
 
@@ -234,17 +455,26 @@ export const PantallaTV = () => {
             {/* TURNO ACTUAL DESTACADO */}
             {activeSpeakingPatient ? (
               <div
-                className={`relative overflow-hidden rounded-3xl border-4 p-6 transition-all duration-300 ${
+                className={`relative overflow-hidden rounded-3xl border-4 p-6 transition-all duration-500 ${
                   isBlinking
-                    ? "border-emerald-300 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 shadow-[0_0_70px_rgba(16,185,129,0.95)] scale-[1.01]"
-                    : "border-emerald-500/60 bg-gradient-to-r from-emerald-600 to-teal-700 shadow-2xl"
+                    ? "animate-slow-call-blink border-emerald-300 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 ring-4 ring-emerald-300/50"
+                    : "border-emerald-700/50 bg-emerald-950/40 shadow-2xl"
                 }`}
               >
                 <div className="flex items-center justify-between mb-3.5">
                   <span className="rounded-full bg-black/40 px-4 py-1 text-xs font-black tracking-wider text-emerald-200 uppercase flex items-center gap-2 shadow-sm">
-                    <span className="size-2.5 rounded-full bg-emerald-300 animate-ping" />
+                    {isBlinking ? (
+                      <span className="size-2.5 rounded-full bg-emerald-300 animate-ping" />
+                    ) : (
+                      <span className="size-2.5 rounded-full bg-emerald-400" />
+                    )}
                     ⭐ LLAMADO ACTUAL
                   </span>
+                  {isBlinking && (
+                    <span className="text-xs font-extrabold bg-emerald-900/90 text-emerald-200 px-3 py-1 rounded-full border border-emerald-400/50 uppercase tracking-widest animate-pulse">
+                      📢 LLAMANDO EN VIVO
+                    </span>
+                  )}
                   <span className="rounded-xl bg-black/40 px-3.5 py-1 text-sm font-black text-emerald-200 border border-emerald-400/40">
                     {activeSpeakingPatient.consultorio ? `Consultorio ${activeSpeakingPatient.consultorio}` : "Consultorio"}
                   </span>
@@ -361,12 +591,7 @@ export const PantallaTV = () => {
             </div>
 
             <div className="relative flex-1 w-full overflow-hidden rounded-2xl bg-black min-h-[300px]">
-              <iframe
-                src="https://www.youtube.com/embed/LXb3EKWsInQ?autoplay=1&mute=1&loop=1&playlist=LXb3EKWsInQ&controls=1&playsinline=1"
-                title="Canal Médico en Vivo"
-                className="size-full absolute inset-0 border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              />
+              <ClinicMediaDisplay mediaSettings={mediaSettings} />
             </div>
           </div>
 

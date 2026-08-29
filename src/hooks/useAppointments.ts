@@ -64,13 +64,26 @@ export const useCreateAppointment = () => {
 
       const organizacionId = profile?.organizacion_id || localStorage.getItem("active_org_id") || null;
 
+      // Filtrar estrictamente solo las columnas existentes en la tabla citas
+      const validCitaPayload: any = {
+        user_id: user.id,
+        organizacion_id: organizacionId,
+      };
+
+      if (newAppointment.nombre !== undefined) validCitaPayload.nombre = newAppointment.nombre;
+      if (newAppointment.telefono !== undefined) validCitaPayload.telefono = newAppointment.telefono || null;
+      if (newAppointment.fechaCita !== undefined) validCitaPayload.fechaCita = newAppointment.fechaCita;
+      if (newAppointment.hora_cita !== undefined) validCitaPayload.hora_cita = newAppointment.hora_cita || null;
+      if (newAppointment.estado !== undefined) validCitaPayload.estado = newAppointment.estado || "confirmada";
+      if (newAppointment.cliente_id !== undefined) validCitaPayload.cliente_id = newAppointment.cliente_id || null;
+      if (newAppointment.doctor_id !== undefined) validCitaPayload.doctor_id = newAppointment.doctor_id || null;
+      if (newAppointment.servicio_id !== undefined) validCitaPayload.servicio_id = newAppointment.servicio_id || null;
+      if (newAppointment.precio !== undefined) validCitaPayload.precio = newAppointment.precio ?? null;
+      if (newAppointment.duracion !== undefined) validCitaPayload.duracion = newAppointment.duracion ?? null;
+
       const { data: cita, error } = await supabase
         .from("citas")
-        .insert([{
-          ...newAppointment,
-          user_id: user.id,
-          organizacion_id: organizacionId,
-        }])
+        .insert([validCitaPayload])
         .select()
         .single();
 
@@ -109,13 +122,14 @@ export const useCreateAppointment = () => {
           }
 
           try {
+            const motivoNota = newAppointment.motivo ? `: ${newAppointment.motivo}` : "";
             await supabase
               .from("expedientes")
               .insert({
                 cliente_id: cita.cliente_id,
                 organizacion_id: organizacionId,
                 profesional_id: profesionalId,
-                detalle: `Expediente creado automáticamente al agendar cita`,
+                detalle: `Expediente creado automáticamente al agendar cita${motivoNota}`,
               });
           } catch (expedienteError) {
             console.warn("No se pudo crear expediente automático:", expedienteError);

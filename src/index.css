@@ -233,3 +233,23 @@
 .marquee:hover {
   animation-play-state: paused;
 }
+
+/* Animación de parpadeo lento visible para llamado activo en TV y monitor */
+@keyframes slowCallBlink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1.01);
+    box-shadow: 0 0 50px rgba(16, 185, 129, 0.9), inset 0 0 20px rgba(52, 211, 153, 0.4);
+    border-color: #6ee7b7;
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.995);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    border-color: #047857;
+  }
+}
+
+.animate-slow-call-blink {
+  animation: slowCallBlink 1.4s ease-in-out infinite;
+}

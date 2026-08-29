@@ -85,8 +85,8 @@ export const CLINIC_VOICE_PERSONAS: VoicePersona[] = [
       "Helena",
       "Laura",
     ],
-    pitch: 1.05,
-    rate: 0.88,
+    pitch: 1.12,
+    rate: 0.86,
   },
   {
     id: "female-mariana",
@@ -104,8 +104,8 @@ export const CLINIC_VOICE_PERSONAS: VoicePersona[] = [
       "Laura",
       "Paulina",
     ],
-    pitch: 1.15,
-    rate: 0.9,
+    pitch: 1.30,
+    rate: 0.90,
   },
   {
     id: "female-sofia",
@@ -116,8 +116,8 @@ export const CLINIC_VOICE_PERSONAS: VoicePersona[] = [
     badge: "👩 Femenina 3",
     description: "Tono brillante y de alta inteligibilidad en salas con ruido.",
     preferredVoices: ["Paulina", "Dalia", "Google español de Estados Unidos", "Sabina", "Paloma"],
-    pitch: 1.25,
-    rate: 0.94,
+    pitch: 1.52,
+    rate: 0.95,
   },
 
   // 3 VOCES MASCULINAS
@@ -129,9 +129,9 @@ export const CLINIC_VOICE_PERSONAS: VoicePersona[] = [
     role: "Masculino Barítono Grave",
     badge: "👨 Masculina 1",
     description: "Tono profundo, formal y con presencia hospitalaria clásica.",
-    preferredVoices: ["Google español", "Raul", "Jorge", "Pablo", "Alvaro"],
-    pitch: 0.92,
-    rate: 0.86,
+    preferredVoices: ["Google español", "Raul", "Jorge", "Pablo", "Alvaro", "David"],
+    pitch: 0.65,
+    rate: 0.82,
   },
   {
     id: "male-carlos",
@@ -141,8 +141,8 @@ export const CLINIC_VOICE_PERSONAS: VoicePersona[] = [
     role: "Masculino Profesional Cercano",
     badge: "👨 Masculina 2",
     description: "Locutor médico equilibrado, natural y respetuoso.",
-    preferredVoices: ["Raul", "Jorge", "Google español", "Pablo"],
-    pitch: 1.0,
+    preferredVoices: ["Raul", "Jorge", "Google español", "Pablo", "David"],
+    pitch: 0.80,
     rate: 0.88,
   },
   {
@@ -153,8 +153,63 @@ export const CLINIC_VOICE_PERSONAS: VoicePersona[] = [
     role: "Masculino Enérgico y Claro",
     badge: "👨 Masculina 3",
     description: "Tono dinámico y directo para llamados de sala.",
-    preferredVoices: ["Jorge", "Google español", "Raul", "Pablo"],
-    pitch: 1.08,
-    rate: 0.92,
+    preferredVoices: ["Jorge", "Google español", "Raul", "Pablo", "David"],
+    pitch: 0.95,
+    rate: 0.94,
   },
 ];
+
+export function resolveVoiceForPersona(
+  personaId: string,
+  availableVoices: SpeechSynthesisVoice[]
+): { voice?: SpeechSynthesisVoice; rate: number; pitch: number; persona: VoicePersona } {
+  const persona = CLINIC_VOICE_PERSONAS.find((p) => p.id === personaId) || CLINIC_VOICE_PERSONAS[0];
+  const esVoices = availableVoices.filter((v) => v.lang.toLowerCase().startsWith("es"));
+  const femaleVoices = esVoices.filter((v) => isFemaleVoice(v.name));
+  const maleVoices = esVoices.filter((v) => !isFemaleVoice(v.name));
+
+  let chosenVoice: SpeechSynthesisVoice | undefined;
+
+  if (persona.gender === "female") {
+    const candidates = femaleVoices.length > 0 ? femaleVoices : esVoices;
+    if (candidates.length > 0) {
+      for (const pref of persona.preferredVoices) {
+        const found = candidates.find((v) => v.name.toLowerCase().includes(pref.toLowerCase()));
+        if (found) {
+          chosenVoice = found;
+          break;
+        }
+      }
+      if (!chosenVoice) {
+        const idx = ["female-valeria", "female-mariana", "female-sofia"].indexOf(persona.id);
+        chosenVoice = candidates[idx % candidates.length];
+      }
+    }
+  } else {
+    const candidates = maleVoices.length > 0 ? maleVoices : esVoices;
+    if (candidates.length > 0) {
+      for (const pref of persona.preferredVoices) {
+        const found = candidates.find((v) => v.name.toLowerCase().includes(pref.toLowerCase()));
+        if (found) {
+          chosenVoice = found;
+          break;
+        }
+      }
+      if (!chosenVoice) {
+        const idx = ["male-alejandro", "male-carlos", "male-gabriel"].indexOf(persona.id);
+        chosenVoice = candidates[idx % candidates.length];
+      }
+    }
+  }
+
+  if (!chosenVoice && esVoices.length > 0) {
+    chosenVoice = esVoices[0];
+  }
+
+  return {
+    voice: chosenVoice,
+    rate: persona.rate,
+    pitch: persona.pitch,
+    persona,
+  };
+}

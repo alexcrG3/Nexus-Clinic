@@ -62,13 +62,13 @@ export const DashboardLayout = () => {
         
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <header className="h-16 border-b bg-card sticky top-0 z-10 shrink-0">
-            <div className="h-full px-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <SidebarTrigger className="lg:hidden">
+            <div className="h-full px-3 sm:px-4 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                <SidebarTrigger className="md:hidden flex items-center justify-center h-10 w-10 rounded-xl border border-border bg-muted/60 hover:bg-muted text-foreground shadow-sm shrink-0">
                   <Menu className="h-5 w-5" />
                 </SidebarTrigger>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white border border-border rounded-xl flex items-center justify-center overflow-hidden shadow-sm p-1">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white border border-border rounded-xl flex items-center justify-center overflow-hidden shadow-sm p-1 shrink-0">
                     {clinicConfig?.logo_url ? (
                       <img 
                         src={clinicConfig.logo_url} 
@@ -76,22 +76,24 @@ export const DashboardLayout = () => {
                         className="w-full h-full object-contain"
                       />
                     ) : (
-                      <Stethoscope className="w-6 h-6 text-primary" />
+                      <Stethoscope className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                     )}
                   </div>
-                  <h1 className="text-xl font-bold text-foreground hidden sm:block">{clinicName}</h1>
-                  <span className="text-sm text-muted-foreground hidden md:block">Sistema Médico</span>
+                  <div className="truncate">
+                    <h1 className="text-base sm:text-lg font-black text-foreground truncate">{clinicName}</h1>
+                    <span className="text-[11px] text-muted-foreground hidden sm:block">Sistema Médico</span>
+                  </div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 {/* Botón Volver al Centro de Mando para SuperAdmin */}
                 {(userRole === 'admin_sistema' || user?.email?.toLowerCase() === 'admin@medicr.com') && (
                   <button
                     onClick={() => navigate('/superadmin')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all shadow-sm"
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all shadow-sm shrink-0"
                   >
-                    ← Volver al Centro de Mando
+                    ← Centro de Mando
                   </button>
                 )}
 

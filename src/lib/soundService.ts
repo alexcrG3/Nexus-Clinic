@@ -201,6 +201,8 @@ export function buildCallSpeechPhrase(
   return `${ticketPhrase}Paciente ${patientName}, por favor pasar a consulta médica.`;
 }
 
+import { resolveVoiceForPersona } from "./voicePersonas";
+
 export function speakPatientCall(
   patientName: string,
   doctorName?: string,
@@ -209,9 +211,10 @@ export function speakPatientCall(
   mode: VoiceMode = "full",
   selectedVoiceURI?: string,
   rate = 0.86,
-  pitch = 1.0
+  pitch = 1.0,
+  activePersonaId?: string
 ) {
-  speakPatientCallAsync(patientName, doctorName, officeName, ticketCode, mode, selectedVoiceURI, rate, pitch);
+  speakPatientCallAsync(patientName, doctorName, officeName, ticketCode, mode, selectedVoiceURI, rate, pitch, activePersonaId);
 }
 
 export function speakPatientCallAsync(
@@ -222,7 +225,8 @@ export function speakPatientCallAsync(
   mode: VoiceMode = "full",
   selectedVoiceURI?: string,
   rate = 0.86,
-  pitch = 1.0
+  pitch = 1.0,
+  activePersonaId?: string
 ): Promise<void> {
   return new Promise((resolve) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -237,23 +241,33 @@ export function speakPatientCallAsync(
 
       const voices = window.speechSynthesis.getVoices();
       let chosenVoice: SpeechSynthesisVoice | undefined;
+      let finalRate = rate;
+      let finalPitch = pitch;
 
       if (selectedVoiceURI && voices && voices.length > 0) {
         chosenVoice = voices.find((v) => v.voiceURI === selectedVoiceURI || v.name === selectedVoiceURI);
+      }
+      
+      if (!chosenVoice && activePersonaId && voices && voices.length > 0) {
+        const resolved = resolveVoiceForPersona(activePersonaId, voices);
+        if (resolved.voice) chosenVoice = resolved.voice;
+        finalRate = resolved.rate;
+        finalPitch = resolved.pitch;
       }
 
       if (!chosenVoice && voices && voices.length > 0) {
         chosenVoice =
           voices.find((v) => v.lang.startsWith("es-")) ||
-          voices.find((v) => v.lang.startsWith("es"));
+          voices.find((v) => v.lang.startsWith("es")) ||
+          voices[0];
       }
 
       const textToSpeak = buildCallSpeechPhrase(patientName, doctorName, officeName, ticketCode, mode);
 
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      utterance.lang = "es-ES";
-      utterance.rate = rate;
-      utterance.pitch = pitch;
+      utterance.lang = chosenVoice?.lang || "es-ES";
+      utterance.rate = finalRate;
+      utterance.pitch = finalPitch;
       utterance.volume = 1.0;
 
       if (chosenVoice) {
@@ -271,11 +285,52 @@ export function speakPatientCallAsync(
       utterance.onend = finish;
       utterance.onerror = finish;
 
-      setTimeout(finish, 6000);
+      setTimeout(finish, 6500);
 
       window.speechSynthesis.speak(utterance);
     } catch (err) {
       resolve();
     }
   });
+}
+
+let speechQueueChain: Promise<void> = Promise.resolve();
+
+export function queueSpeechCall(
+  chimeTone: ChimeToneType | undefined,
+  patientName: string,
+  doctorName?: string,
+  officeName?: string,
+  ticketCode?: string,
+  mode: VoiceMode = "full",
+  selectedVoiceURI?: string,
+  rate = 0.86,
+  pitch = 1.0,
+  activePersonaId?: string
+): Promise<void> {
+  const nextCall = async () => {
+    try {
+      if (chimeTone) {
+        playChime(chimeTone);
+        await new Promise((r) => setTimeout(r, 650));
+      }
+      await speakPatientCallAsync(
+        patientName,
+        doctorName,
+        officeName,
+        ticketCode,
+        mode,
+        selectedVoiceURI,
+        rate,
+        pitch,
+        activePersonaId
+      );
+      await new Promise((r) => setTimeout(r, 600));
+    } catch (e) {
+      console.warn("Error en queueSpeechCall", e);
+    }
+  };
+
+  speechQueueChain = speechQueueChain.then(nextCall, nextCall);
+  return speechQueueChain;
 }

@@ -13,6 +13,7 @@ import {
   MapPin,
   Stethoscope
 } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +23,7 @@ import { ClinicAgentEngine } from "@/services/aiAgent/agentEngine";
 import { ChatMessage } from "@/services/aiAgent/types";
 
 export const ClinicAiChatWidget: React.FC = () => {
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -33,7 +35,22 @@ export const ClinicAiChatWidget: React.FC = () => {
   const engineRef = useRef<ClinicAgentEngine | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Ocultar la burbuja del agente IA en pantallas de turnos, llamador y monitores de TV
+  const hideOnPaths = [
+    "/tv",
+    "/pantalla-tv",
+    "/sala-espera",
+    "/turnos",
+    "/llamador",
+    "/dashboard/turnos",
+    "/dashboard/llamador",
+  ];
+  const shouldHide = hideOnPaths.some(
+    (p) => location.pathname === p || location.pathname.startsWith(p + "/")
+  );
+
   useEffect(() => {
+    if (shouldHide) return;
     // Inicializar motor
     const engine = new ClinicAgentEngine();
     engineRef.current = engine;
@@ -117,6 +134,10 @@ export const ClinicAiChatWidget: React.FC = () => {
     { label: "📍 Ubicación", query: "¿Dónde está ubicada la clínica?" },
     { label: "❌ Cancelar Cita", query: "Deseo cancelar mi cita" },
   ];
+
+  if (shouldHide) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">

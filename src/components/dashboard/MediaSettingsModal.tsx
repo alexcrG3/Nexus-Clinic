@@ -17,6 +17,8 @@ import {
   Sparkles,
   ArrowRight,
   FileVideo,
+  RotateCcw,
+  RefreshCw,
 } from "lucide-react";
 import {
   type ClinicMediaSettings,
@@ -29,6 +31,7 @@ import {
   DEFAULT_AD_BANNERS,
   DEFAULT_VIDEO_PRESETS,
   DEFAULT_VIDEO_PLAYLIST,
+  extractYouTubeId,
 } from "@/lib/queueStore";
 import {
   getAvailableVoices,
@@ -38,7 +41,7 @@ import {
   speakPatientCall,
   type VoiceMode,
 } from "@/lib/soundService";
-import { CLINIC_VOICE_PERSONAS, type VoicePersona, isFemaleVoice } from "@/lib/voicePersonas";
+import { CLINIC_VOICE_PERSONAS, type VoicePersona, isFemaleVoice, resolveVoiceForPersona } from "@/lib/voicePersonas";
 import { saveLocalVideo, getLocalVideoBlob } from "@/lib/mediaStorage";
 
 interface MediaSettingsModalProps {
@@ -46,37 +49,36 @@ interface MediaSettingsModalProps {
   voiceMode?: VoiceMode;
   onSave: (settings: Partial<ClinicMediaSettings>) => void;
   onClose: () => void;
+  onResetQueue?: (mode: "clear" | "demo") => void;
+  onClearHistorial?: () => void;
 }
 
-export function isYouTubeUrl(url: string): boolean {
-  if (!url) return false;
-  return /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i.test(url);
-}
+const isYouTubeUrl = (url: string): boolean => {
+  return !!extractYouTubeId(url);
+};
 
 export function MediaSettingsModal({
   currentSettings,
   voiceMode = "full",
   onSave,
   onClose,
+  onResetQueue,
+  onClearHistorial,
 }: MediaSettingsModalProps) {
   const [clinicName, setClinicName] = useState(currentSettings.clinicName);
   const [mediaEnabled, setMediaEnabled] = useState(currentSettings.mediaEnabled ?? true);
   const [mediaType, setMediaType] = useState<MediaContentType>(
     currentSettings.mediaType || "youtube",
   );
-  const [youtubeUrl, setYoutubeUrl] = useState(currentSettings.youtubeUrl);
+  const [youtubeUrl, setYoutubeUrl] = useState(currentSettings.youtubeUrl || "");
   const [videoPresets, setVideoPresets] = useState<VideoPreset[]>(
-    currentSettings.videoPresets && currentSettings.videoPresets.length > 0
-      ? currentSettings.videoPresets
-      : DEFAULT_VIDEO_PRESETS,
+    currentSettings.videoPresets ?? DEFAULT_VIDEO_PRESETS,
   );
   const [showAddPresetForm, setShowAddPresetForm] = useState(false);
   const [newPresetName, setNewPresetName] = useState("");
   const [newPresetUrl, setNewPresetUrl] = useState("");
   const [videoPlaylist, setVideoPlaylist] = useState<CommercialVideoItem[]>(
-    currentSettings.videoPlaylist && currentSettings.videoPlaylist.length > 0
-      ? currentSettings.videoPlaylist
-      : DEFAULT_VIDEO_PLAYLIST,
+    currentSettings.videoPlaylist ?? DEFAULT_VIDEO_PLAYLIST,
   );
   const [showAddVideoForm, setShowAddVideoForm] = useState(false);
   const [newVideoTitle, setNewVideoTitle] = useState("");
@@ -189,7 +191,7 @@ export function MediaSettingsModal({
   const [selectedVoiceURI, setSelectedVoiceURI] = useState(currentSettings.selectedVoiceURI || "");
   const [voiceRate, setVoiceRate] = useState(currentSettings.voiceRate || 0.86);
   const [voicePitch, setVoicePitch] = useState(currentSettings.voicePitch || 1.0);
-  const [activePersonaId, setActivePersonaId] = useState<string | null>(null);
+  const [activePersonaId, setActivePersonaId] = useState<string>(currentSettings.activePersonaId || "female-valeria");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -209,6 +211,7 @@ export function MediaSettingsModal({
     overrideVoiceURI = selectedVoiceURI,
     overrideRate = voiceRate,
     overridePitch = voicePitch,
+    overridePersonaId = activePersonaId
   ) => {
     playDingDong();
     setTimeout(() => {
@@ -221,40 +224,9 @@ export function MediaSettingsModal({
         overrideVoiceURI,
         overrideRate,
         overridePitch,
+        overridePersonaId
       );
     }, 850);
-  };
-
-  const getGenderedEsVoices = () => {
-    const esVoices = voices.filter((v) => v.lang.toLowerCase().startsWith("es"));
-    const femaleEsVoices = esVoices.filter((v) => isFemaleVoice(v.name));
-    const maleEsVoices = esVoices.filter((v) => !isFemaleVoice(v.name));
-    return { esVoices, femaleEsVoices, maleEsVoices };
-  };
-
-  const FEMALE_PERSONA_IDS = ["female-valeria", "female-mariana", "female-sofia"];
-  const MALE_PERSONA_IDS = ["male-alejandro", "male-carlos", "male-gabriel"];
-
-  const getPersonaVoice = (persona: VoicePersona): SpeechSynthesisVoice | undefined => {
-    const { esVoices, femaleEsVoices, maleEsVoices } = getGenderedEsVoices();
-
-    if (persona.gender === "female") {
-      if (femaleEsVoices.length === 0) return esVoices[0];
-      for (const pref of persona.preferredVoices) {
-        const found = femaleEsVoices.find((v) => v.name.toLowerCase().includes(pref.toLowerCase()));
-        if (found) return found;
-      }
-      const idx = FEMALE_PERSONA_IDS.indexOf(persona.id);
-      return femaleEsVoices[idx % femaleEsVoices.length];
-    } else {
-      if (maleEsVoices.length === 0) return esVoices[0];
-      for (const pref of persona.preferredVoices) {
-        const found = maleEsVoices.find((v) => v.name.toLowerCase().includes(pref.toLowerCase()));
-        if (found) return found;
-      }
-      const idx = MALE_PERSONA_IDS.indexOf(persona.id);
-      return maleEsVoices[idx % maleEsVoices.length];
-    }
   };
 
   const handleSelectPersona = (persona: VoicePersona) => {
@@ -262,11 +234,11 @@ export function MediaSettingsModal({
     setVoicePitch(persona.pitch);
     setVoiceRate(persona.rate);
 
-    const voice = getPersonaVoice(persona);
-    const matchedURI = voice ? voice.voiceURI : "";
+    const resolved = resolveVoiceForPersona(persona.id, voices);
+    const matchedURI = resolved.voice ? resolved.voice.voiceURI : "";
 
     if (matchedURI) setSelectedVoiceURI(matchedURI);
-    handleTestSelectedVoice(matchedURI, persona.rate, persona.pitch);
+    handleTestSelectedVoice(matchedURI, persona.rate, persona.pitch, persona.id);
   };
 
   const handleAddPreset = () => {
@@ -338,6 +310,7 @@ export function MediaSettingsModal({
       selectedVoiceURI,
       voiceRate,
       voicePitch,
+      activePersonaId,
     });
     setSavedSuccess(true);
     setTimeout(() => {
@@ -494,7 +467,10 @@ export function MediaSettingsModal({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setMediaType("youtube")}
+                    onClick={() => {
+                      setMediaType("youtube");
+                      onSave({ mediaType: "youtube" });
+                    }}
                     className={`flex flex-col items-center justify-center rounded-2xl border p-3.5 text-center transition-all ${
                       mediaType === "youtube"
                         ? "border-rose-500 bg-rose-950/30 ring-2 ring-rose-500/40 shadow-lg"
@@ -508,7 +484,10 @@ export function MediaSettingsModal({
 
                   <button
                     type="button"
-                    onClick={() => setMediaType("video_mp4")}
+                    onClick={() => {
+                      setMediaType("video_mp4");
+                      onSave({ mediaType: "video_mp4" });
+                    }}
                     className={`flex flex-col items-center justify-center rounded-2xl border p-3.5 text-center transition-all ${
                       mediaType === "video_mp4"
                         ? "border-sky-500 bg-sky-950/30 ring-2 ring-sky-500/40 shadow-lg"
@@ -522,7 +501,10 @@ export function MediaSettingsModal({
 
                   <button
                     type="button"
-                    onClick={() => setMediaType("banner_slideshow")}
+                    onClick={() => {
+                      setMediaType("banner_slideshow");
+                      onSave({ mediaType: "banner_slideshow", adBanners });
+                    }}
                     className={`flex flex-col items-center justify-center rounded-2xl border p-3.5 text-center transition-all ${
                       mediaType === "banner_slideshow"
                         ? "border-emerald-500 bg-emerald-950/30 ring-2 ring-emerald-500/40 shadow-lg"
@@ -554,10 +536,15 @@ export function MediaSettingsModal({
                     {/* Presets Guardados */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                          <Youtube className="size-4 text-rose-500" />
-                          Botones Rápidos Guardados ({videoPresets.length})
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                            <Youtube className="size-4 text-rose-500" />
+                            Botones Rápidos Guardados ({videoPresets.length})
+                          </span>
+                          <span className="rounded-full bg-rose-500/20 border border-rose-500/40 px-2 py-0.5 text-[9px] font-black text-rose-300">
+                            🔄 Secuencia Continua
+                          </span>
+                        </div>
                         <button
                           type="button"
                           onClick={() => setShowAddPresetForm(!showAddPresetForm)}
@@ -567,6 +554,9 @@ export function MediaSettingsModal({
                           {showAddPresetForm ? "Cancelar" : "➕ Crear Nuevo Botón"}
                         </button>
                       </div>
+                      <p className="text-[11px] text-slate-400">
+                        Al terminar cada video de YouTube, el monitor pasará automáticamente al siguiente botón guardado en bucle.
+                      </p>
 
                       {showAddPresetForm && (
                         <div className="rounded-2xl border border-rose-500/40 bg-slate-950 p-3.5 space-y-2 animate-in fade-in">
@@ -602,35 +592,57 @@ export function MediaSettingsModal({
                       )}
 
                       <div className="flex flex-wrap gap-2 pt-1">
-                        {videoPresets.map((preset) => (
-                          <div
-                            key={preset.id}
-                            className={`group flex items-center rounded-xl border transition-all ${
-                              youtubeUrl === preset.url
-                                ? "border-rose-500 bg-rose-950/40 text-rose-200 ring-2 ring-rose-500/30"
-                                : "border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700 hover:text-white"
-                            }`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => setYoutubeUrl(preset.url)}
-                              className="px-3 py-1.5 text-xs font-bold"
+                        {videoPresets.map((preset, idx) => {
+                          const isCurrentActive =
+                            youtubeUrl === preset.url || (!youtubeUrl && idx === 0);
+                          return (
+                            <div
+                              key={preset.id}
+                              className={`group flex items-center rounded-xl border transition-all ${
+                                isCurrentActive
+                                  ? "border-rose-500 bg-rose-950/50 text-white ring-2 ring-rose-500/40 shadow-lg"
+                                  : "border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700 hover:text-white"
+                              }`}
                             >
-                              {preset.name}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemovePreset(preset.id);
-                              }}
-                              title="Eliminar"
-                              className="px-1.5 py-1.5 text-slate-500 hover:text-rose-400 opacity-60 group-hover:opacity-100 transition-opacity"
-                            >
-                              <Trash2 className="size-3" />
-                            </button>
-                          </div>
-                        ))}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setYoutubeUrl(preset.url);
+                                  // Aplicar de inmediato sin necesidad de presionar Guardar
+                                  onSave({ youtubeUrl: preset.url, videoPresets, mediaType: "youtube" });
+                                }}
+                                className="px-3 py-1.5 text-xs font-bold flex items-center gap-1.5"
+                              >
+                                <span>{preset.name}</span>
+                                {isCurrentActive && (
+                                  <span className="rounded bg-rose-500/30 px-1.5 py-0.2 text-[9px] font-black text-rose-200 uppercase">
+                                    ⭐ Iniciando
+                                  </span>
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const updated = videoPresets.filter((p) => p.id !== preset.id);
+                                  setVideoPresets(updated);
+                                  // Si el borrado era el activo, limpiar URL
+                                  if (youtubeUrl === preset.url) {
+                                    const nextUrl = updated[0]?.url || "";
+                                    setYoutubeUrl(nextUrl);
+                                    onSave({ youtubeUrl: nextUrl, videoPresets: updated, mediaType: "youtube" });
+                                  } else {
+                                    onSave({ youtubeUrl, videoPresets: updated, mediaType: "youtube" });
+                                  }
+                                }}
+                                title="Eliminar"
+                                className="px-1.5 py-1.5 text-slate-500 hover:text-rose-400 opacity-60 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Trash2 className="size-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -648,44 +660,210 @@ export function MediaSettingsModal({
                       className="hidden"
                     />
 
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                      <div>
-                        <span className="text-xs font-bold text-white block">Lista de Videos Locales</span>
-                        <p className="text-[11px] text-slate-400">Sube videos desde tu computador para rotarlos en la TV</p>
+                    {/* URL directa de video */}
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1">
+                        URL Directa del Video (MP4, WebM o Enlace de Video):
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <input
+                          type="text"
+                          value={directVideoUrl}
+                          onChange={(e) => setDirectVideoUrl(e.target.value)}
+                          placeholder="ej. https://.../video.mp4 o enlace de video"
+                          className="flex-1 min-w-[200px] rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-sky-500 focus:outline-none font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = directVideoUrl.trim();
+                            if (val) {
+                              const isYt = isYouTubeUrl(val);
+                              onSave({
+                                directVideoUrl: val,
+                                youtubeUrl: isYt ? val : youtubeUrl,
+                                mediaType: "video_mp4",
+                              });
+                            }
+                          }}
+                          className="flex items-center gap-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 px-3.5 py-2 text-xs font-bold text-white transition-all shadow shrink-0"
+                        >
+                          ▶ Reproducir Ahora
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = directVideoUrl.trim();
+                            if (!val) return;
+                            const isYt = isYouTubeUrl(val);
+                            const newItem: CommercialVideoItem = {
+                              id: `video-${Date.now()}`,
+                              title: isYt ? "Video Comercial" : "Video Directo MP4",
+                              url: val,
+                              type: isYt ? "youtube" : "file",
+                              durationSeconds: 30,
+                              sponsorName: "Personalizado",
+                            };
+                            const updated = [...videoPlaylist, newItem];
+                            setVideoPlaylist(updated);
+                            onSave({
+                              videoPlaylist: updated,
+                              directVideoUrl: val,
+                              youtubeUrl: isYt ? val : youtubeUrl,
+                              mediaType: "video_mp4",
+                            });
+                          }}
+                          className="flex items-center gap-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 text-xs font-bold text-sky-300 transition-all shrink-0"
+                        >
+                          <Plus className="size-3.5" />
+                          + Guardar en Lista
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => videoFileInputRef.current?.click()}
-                        disabled={isUploadingVideo}
-                        className="flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-500 px-4 py-2 text-xs font-bold text-white transition-all shadow"
-                      >
-                        <Upload className="size-4" />
-                        {isUploadingVideo ? "Subiendo..." : "Subir Video Local (.mp4)"}
-                      </button>
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        Pega cualquier enlace público de video o YouTube y presiona "Reproducir Ahora" para activarlo al instante.
+                      </p>
                     </div>
 
-                    <div className="space-y-2 pt-2">
-                      {videoPlaylist.map((item, idx) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs"
+                    <div className="border-t border-slate-800 pt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white block">Lista de Comerciales Guardados ({videoPlaylist.length})</span>
+                          <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2 py-0.5 text-[9px] font-black text-emerald-300">
+                            🔄 Secuencia Continua
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Al terminar cada video o cumplirse su tiempo, pasará automáticamente al siguiente en bucle.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {/* Botones rápidos de duración para todos */}
+                        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[10px]">
+                          <span className="text-slate-400 px-1 font-bold">⏱️ Todos:</span>
+                          {[5, 10, 15, 30].map((sec) => (
+                            <button
+                              key={sec}
+                              type="button"
+                              onClick={() => {
+                                const updated = videoPlaylist.map((v) => ({ ...v, durationSeconds: sec }));
+                                setVideoPlaylist(updated);
+                                onSave({ videoPlaylist: updated });
+                              }}
+                              className="px-2 py-0.5 rounded-lg font-bold bg-slate-800 hover:bg-sky-600 hover:text-white text-slate-300 transition-all"
+                            >
+                              {sec}s
+                            </button>
+                          ))}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => videoFileInputRef.current?.click()}
+                          disabled={isUploadingVideo}
+                          className="flex items-center gap-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 px-3.5 py-1.5 text-xs font-bold text-white transition-all shadow shrink-0"
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <Film className="size-4 text-sky-400 shrink-0" />
-                            <div className="truncate">
-                              <span className="font-bold text-white block truncate">{item.title}</span>
-                              <span className="text-[10px] text-slate-400">Duración: {item.durationSeconds || 30}s · {item.sponsorName || "Local"}</span>
+                          <Upload className="size-3.5" />
+                          {isUploadingVideo ? "Subiendo..." : "Subir (.mp4)"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {videoPlaylist.map((item, idx) => {
+                        const isCurrentActive =
+                          directVideoUrl === item.url || (!directVideoUrl && idx === 0);
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => {
+                              setDirectVideoUrl(item.url);
+                              const isYt = isYouTubeUrl(item.url);
+                              if (isYt) setYoutubeUrl(item.url);
+                              onSave({
+                                directVideoUrl: item.url,
+                                youtubeUrl: isYt ? item.url : youtubeUrl,
+                                mediaType: "video_mp4",
+                                videoPlaylist,
+                              });
+                            }}
+                            className={`flex items-center justify-between rounded-xl border p-3 text-xs cursor-pointer transition-all ${
+                              isCurrentActive
+                                ? "border-sky-500 bg-sky-950/50 text-white ring-2 ring-sky-500/40 shadow-lg"
+                                : "border-slate-800 bg-slate-950 text-slate-300 hover:border-slate-700 hover:bg-slate-900/60"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <Film
+                                className={`size-4 shrink-0 ${
+                                  isCurrentActive ? "text-sky-400" : "text-slate-500"
+                                }`}
+                              />
+                              <div className="truncate">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-white truncate">{item.title}</span>
+                                  {isCurrentActive && (
+                                    <span className="rounded bg-sky-500/20 border border-sky-400/40 px-1.5 py-0.5 text-[9px] font-black text-sky-300 uppercase">
+                                      ⭐ INICIANDO AQUÍ
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-400">
+                                  Duración: {item.durationSeconds || 30}s · {item.sponsorName || "Local"}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {/* Selector rápido de duración */}
+                              <select
+                                value={item.durationSeconds || 30}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => {
+                                  const sec = parseInt(e.target.value, 10);
+                                  const updated = videoPlaylist.map((v) =>
+                                    v.id === item.id ? { ...v, durationSeconds: sec } : v
+                                  );
+                                  setVideoPlaylist(updated);
+                                  onSave({ videoPlaylist: updated });
+                                }}
+                                className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-[10px] text-slate-300 focus:border-sky-500 focus:outline-none"
+                              >
+                                <option value={5}>5 seg</option>
+                                <option value={10}>10 seg</option>
+                                <option value={15}>15 seg</option>
+                                <option value={20}>20 seg</option>
+                                <option value={30}>30 seg</option>
+                                <option value={45}>45 seg</option>
+                                <option value={60}>1 min</option>
+                                <option value={120}>2 min</option>
+                              </select>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const updated = videoPlaylist.filter((v) => v.id !== item.id);
+                                  setVideoPlaylist(updated);
+                                  if (directVideoUrl === item.url) {
+                                    const nextUrl = updated[0]?.url || "";
+                                    setDirectVideoUrl(nextUrl);
+                                    onSave({
+                                      videoPlaylist: updated,
+                                      directVideoUrl: nextUrl,
+                                      mediaType: "video_mp4",
+                                    });
+                                  } else {
+                                    onSave({ videoPlaylist: updated });
+                                  }
+                                }}
+                                title="Eliminar video"
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-all ml-1"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setVideoPlaylist(videoPlaylist.filter((v) => v.id !== item.id))}
-                            className="p-1 text-slate-400 hover:text-rose-400"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -772,10 +950,90 @@ export function MediaSettingsModal({
               </div>
             </div>
 
-            {/* 6 Locutores Virtuales IA */}
-            <div className="pt-2 border-t border-slate-800/80 space-y-2.5">
+            {/* Selector Directo de Voz del Dispositivo y Ajuste Manual */}
+            <div className="pt-3 border-t border-slate-800/80 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Dropdown directo de todas las voces del sistema */}
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">
+                    Voz del Sistema / Navegador (Cualquier voz instalada):
+                  </label>
+                  <select
+                    value={selectedVoiceURI}
+                    onChange={(e) => {
+                      const uri = e.target.value;
+                      setSelectedVoiceURI(uri);
+                      onSave({ selectedVoiceURI: uri, voiceRate, voicePitch, activePersonaId });
+                      handleTestSelectedVoice(uri, voiceRate, voicePitch, activePersonaId);
+                    }}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-mono font-bold text-white focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="">-- Voz Predeterminada en Español --</option>
+                    {voices.map((v) => (
+                      <option key={v.voiceURI} value={v.voiceURI}>
+                        {v.name} ({v.lang})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Slider Tono (Pitch) */}
+                <div>
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1">
+                    <span>Tono de Voz (Pitch):</span>
+                    <span className="text-emerald-400 font-mono">{voicePitch.toFixed(2)}x {voicePitch < 0.9 ? "(Grave)" : voicePitch > 1.2 ? "(Agudo)" : "(Normal)"}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="1.6"
+                    step="0.05"
+                    value={voicePitch}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setVoicePitch(val);
+                    }}
+                    className="w-full accent-emerald-500 cursor-pointer"
+                  />
+                </div>
+
+                {/* Slider Velocidad (Rate) */}
+                <div>
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1">
+                    <span>Velocidad de Habla (Rate):</span>
+                    <span className="text-emerald-400 font-mono">{voiceRate.toFixed(2)}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.7"
+                    max="1.2"
+                    step="0.02"
+                    value={voiceRate}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setVoiceRate(val);
+                    }}
+                    className="w-full accent-emerald-500 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleTestSelectedVoice(selectedVoiceURI, voiceRate, voicePitch, activePersonaId)}
+                  className="flex items-center gap-2 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 px-4 py-2 text-xs font-bold text-emerald-200 transition-all active:scale-95"
+                >
+                  <Volume2 className="size-4 text-emerald-400" />
+                  🔊 Escuchar Prueba de Voz y Tono Actual
+                </button>
+              </div>
+            </div>
+
+            {/* 6 Locutores Virtuales IA (Botones Rápidos Prediseñados) */}
+            <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
               <label className="text-xs font-semibold text-slate-300 block">
-                Catálogo de Locutores Médicos IA:
+                Perfiles Rápidos Prediseñados (Elige libremente cualquier perfil femenino o masculino):
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -806,6 +1064,91 @@ export function MediaSettingsModal({
               </div>
             </div>
           </div>
+
+          {/* SECCIÓN: REINICIO Y GESTIÓN DE TURNOS / COLA */}
+          {(onResetQueue || onClearHistorial) && (
+            <div className="rounded-3xl border border-rose-500/30 bg-slate-950/70 p-5 space-y-4 shadow-inner">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-black text-rose-400 uppercase tracking-wider">
+                    <RotateCcw className="size-4" />
+                    <span>Gestión y Reinicio de la Cola de Llamados</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Controla los turnos en espera, vacía la cola del día a cero o recarga datos de prueba (independiente de citas médicas)
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Opción 1: Vaciar todo a cero */}
+                <div className="p-3.5 rounded-2xl border border-rose-500/30 bg-rose-950/20 flex flex-col justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-extrabold text-white flex items-center gap-1.5 mb-1">
+                      <Trash2 className="size-3.5 text-rose-400" /> Vaciar Toda la Cola
+                    </h4>
+                    <p className="text-[11px] text-slate-400 leading-tight">
+                      Elimina todos los pacientes en espera y libera todos los consultorios a 0.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onResetQueue?.("clear");
+                      onClose();
+                    }}
+                    className="w-full rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs py-2 transition-all shadow-md active:scale-95"
+                  >
+                    Vaciar a Cero
+                  </button>
+                </div>
+
+                {/* Opción 2: Cargar Demo */}
+                <div className="p-3.5 rounded-2xl border border-sky-500/30 bg-sky-950/20 flex flex-col justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-extrabold text-white flex items-center gap-1.5 mb-1">
+                      <RefreshCw className="size-3.5 text-sky-400" /> Cargar Turnos de Prueba
+                    </h4>
+                    <p className="text-[11px] text-slate-400 leading-tight">
+                      Restablece la lista inicial con pacientes de prueba para verificar audio y TV.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onResetQueue?.("demo");
+                      onClose();
+                    }}
+                    className="w-full rounded-xl border border-sky-500/40 bg-sky-600/30 hover:bg-sky-600/50 text-sky-200 font-bold text-xs py-2 transition-all shadow-md active:scale-95"
+                  >
+                    Cargar Demo
+                  </button>
+                </div>
+
+                {/* Opción 3: Limpiar Historial */}
+                <div className="p-3.5 rounded-2xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-extrabold text-white flex items-center gap-1.5 mb-1">
+                      <CheckCircle2 className="size-3.5 text-emerald-400" /> Limpiar Historial
+                    </h4>
+                    <p className="text-[11px] text-slate-400 leading-tight">
+                      Borra los registros de pacientes que ya terminaron su atención médica.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClearHistorial?.();
+                      onClose();
+                    }}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-2 transition-all shadow-md active:scale-95"
+                  >
+                    Limpiar Historial
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </form>
 
         {/* Footer */}
