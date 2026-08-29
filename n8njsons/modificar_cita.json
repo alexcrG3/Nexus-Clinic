@@ -1,0 +1,438 @@
+{
+  "name": "modificar_cita",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Fecha actual:{{ $json.fecha_actual }}\nFecha nueva:{{ $json.fecha_nueva }}\nTelefono:{{ $json.telefono }}\nNombre:{{ $json.nombre }}",
+        "options": {
+          "systemMessage": "=# Rol  \nEres un agente virtual especializado en la gestión y modificación de citas. Tienes experiencia en validar, reprogramar y eliminar citas de manera eficiente, asegurando que los cambios cumplan con los requisitos establecidos.  \n\n# Tarea  \nTu tarea es modificar citas según las solicitudes de los usuarios, siguiendo un proceso estructurado. Para ello, debes:  \n\n1.Validar la nueva fecha: Asegurar que la nueva fecha solicitada está dentro del horario de atención permitido utilizando la herramienta \"comprobar_nueva_fecha\".  \n\n2.Buscar id cita actual con \"buscar_id\".\n\n3.Comprobar la disponibilidad de la nueva fecha: Usar la herramienta \"comprobar_disponibilidad_nuevafecha\". Si no hay disponibilidad, ofrecer horarios alternativos mediante la herramienta \"ofrecer_horarios_nueva_fecha\".  \n\n4.Crear la nueva cita: Si la nueva fecha es válida, proceder a agendar la nueva cita con la herramienta \"crear_cita_nueva\"\n\n\n5.Eliminar la cita actual: Una vez creada la nueva cita, eliminar la cita original usando la herramienta \"eliminar_cita_actual\"  \n\n6. Eliminar la cita actual de la db: en supabase con la herramienta \"eliminar_cita_db\" borrar la cita actual. \n\n7. Crear la nueva cita: con la herramienta \"crear_nueva_cita_db\" proceder a agendar la cita nueva. \n\n#Formato respuesta:\n{\n\t\"respuesta\": \"La modificación de su cita se ha realizado exitosamente para el:\"\n\n}\n\n# Detalles Específicos  \n- Si en algún punto del proceso una validación falla, informar al usuario con una respuesta clara y específica sobre el motivo del rechazo.  \n- Utilizar las herramientas en el orden establecido para garantizar la correcta modificación de la cita.  \n- En caso de que la fecha actual no exista o no corresponda al usuario, informar que la cita no pudo ser encontrada.  \n- Si la nueva fecha está fuera del horario permitido, indicar los horarios disponibles.    \n- Confirmar al usuario cada paso exitoso, asegurando claridad en el proceso.  \n\n# Notas  \n- La fecha de hoy es {{ $now }}  \n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        352,
+        0
+      ],
+      "id": "d08fc799-7d28-43c6-833d-3ba10ea5f4f8",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini-2025-04-14",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini-2025-04-14"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        320
+      ],
+      "id": "02296507-f385-4693-bcee-2fcd71f6f406",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ox1IOcIKminkiB5X",
+          "name": "OpenAi GrupoG3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "comprobar_nueva_fecha",
+        "description": "Comprueba si la nueva fecha de la cita corresponde a los horarios de atencion.",
+        "workflowId": {
+          "__rl": true,
+          "value": "rAVOZow3YWnMlxd2",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/rAVOZow3YWnMlxd2",
+          "cachedResultName": "comprobar_nueva_fecha"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ $json.fecha_nueva }}"
+          },
+          "matchingColumns": [
+            "Fecha"
+          ],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        192,
+        320
+      ],
+      "id": "2b94e146-632c-4eec-a0e9-e51be1e1060a",
+      "name": "comprobar_nueva_fecha"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "limit": 1,
+        "timeMin": "={{ $json.fecha_actual }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', `1 hora despues de la fecha actual`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        320
+      ],
+      "id": "f71969bc-c172-4008-9278-3740d7c2c3e8",
+      "name": "buscar_id",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "timeMin": "={{ $json.fecha_nueva }}-06:00",
+        "timeMax": "={{ $fromAI('End_Time', \"1 hora despues de la fecha nueva\", 'string') }}-06:00",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        320
+      ],
+      "id": "10939b89-1844-46bb-9668-7ddb5bccf475",
+      "name": "comprobar_disponibilidad_nueva_fecha",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "ofrecer_horarios_nueva_fecha",
+        "description": "Eres la herramienta encargada de ofrecer horarios alternativos de la fecha nueva.",
+        "workflowId": {
+          "__rl": true,
+          "value": "zKdRqJFEH3pfe09a",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/zKdRqJFEH3pfe09a",
+          "cachedResultName": "Entregar_horarios"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.1,
+      "position": [
+        672,
+        320
+      ],
+      "id": "2e74a3fd-a7aa-4b99-94cf-961a14c22983",
+      "name": "ofrecer_horarios_nueva_fecha"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "start": "={{ $json.fecha_nueva }}",
+        "end": "={{ $fromAI('End', \"1 hora despues de la fecha nueva\", 'string') }}",
+        "additionalFields": {
+          "summary": "=Cita: {{ $json.nombre }} {{ $json.telefono }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        848,
+        320
+      ],
+      "id": "592663ff-2e68-4228-88c3-f52a4a27d63d",
+      "name": "crear_cita_nueva",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', `Event id de la cita actual`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1024,
+        320
+      ],
+      "id": "7e534694-5ae6-44f1-8d03-d5f1a7de3141",
+      "name": "eliminar_cita_actual",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"telefono\": \"+50688888888\",\n  \"nombre\": \"Alexander Guthrie\",\n  \"fecha_actual\": \"2025-05-29\",\n  \"fecha_nueva\": \"2025-06-05\"\n}\n"
+      },
+      "id": "f8be660c-a397-4687-b11b-2062f4e0f428",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "citas",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "fechaCita",
+              "condition": "eq",
+              "keyValue": "={{ $json.fecha_actual }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        320
+      ],
+      "id": "aa717eb6-bb9d-4b2f-8a3c-17fff47b8c84",
+      "name": "eliminar_cita_db",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "citas",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "fechaCita",
+              "fieldValue": "={{ $json.fecha_nueva }}"
+            },
+            {
+              "fieldId": "nombre",
+              "fieldValue": "={{ $json.nombre }}"
+            },
+            {
+              "fieldId": "telefono",
+              "fieldValue": "={{ $json.telefono }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        320
+      ],
+      "id": "3f938028-752f-4e74-b70c-3a75979a4f91",
+      "name": "crear_nueva_cita_db",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "comprobar_nueva_fecha": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_id": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "comprobar_disponibilidad_nueva_fecha": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ofrecer_horarios_nueva_fecha": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "crear_cita_nueva": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "eliminar_cita_actual": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "eliminar_cita_db": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "crear_nueva_cita_db": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "America/Costa_Rica",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "774778fe-a7de-4594-bbb5-5e2c6839d126",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "16c57bc91594644fa4b8c6d1d6d1f1b2091413732919c15da3830e39c89bb9c7"
+  },
+  "nodeGroups": [],
+  "id": "ucs8CQN57CEex8pX",
+  "tags": []
+}

@@ -1,0 +1,235 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+  PALETA OFICIAL - Sistema Médico MediCR
+  
+  🔵 Azul Petróleo (sidebar - institucional)
+  Base: #1F3A5F | HSL: 215 51% 25%
+  Hover: #162C47 | HSL: 213 53% 18%
+  Soft bg: #EAF0F6 | HSL: 210 35% 94%
+  Border: #D6E0EA | HSL: 210 33% 88%
+  
+  🟢 Verde Turquesa (identidad médica - principal)
+  Base: #2AA198 | HSL: 175 55% 42%
+  Hover: #238B83 | HSL: 175 55% 34%
+  Soft bg: #E6F6F4 | HSL: 170 45% 93%
+  Border: #B8E6E0 | HSL: 170 50% 81%
+  
+  🟠 Coral (CTA - SOLO acciones clave)
+  Base: #FF6F61 | HSL: 5 100% 69%
+  Hover: #E85C50 | HSL: 5 77% 61%
+  Soft bg: #FFE7E4 | HSL: 7 100% 95%
+*/
+
+@layer base {
+  :root {
+    /* Core background/foreground */
+    --background: 0 0% 100%;
+    --foreground: 215 51% 20%;
+    
+    /* Cards */
+    --card: 0 0% 100%;
+    --card-foreground: 215 51% 20%;
+    
+    /* Popovers */
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 51% 20%;
+    
+    /* Primary: Verde Turquesa (color principal del sistema) */
+    --primary: 175 55% 42%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 175 55% 34%;
+    --primary-soft: 170 45% 93%;
+    
+    /* Secondary: Azul Petróleo (para textos fuertes, sidebar) */
+    --secondary: 215 51% 25%;
+    --secondary-foreground: 0 0% 98%;
+    --secondary-hover: 213 53% 18%;
+    --secondary-soft: 210 35% 94%;
+    
+    /* Muted */
+    --muted: 210 35% 94%;
+    --muted-foreground: 215 30% 45%;
+    
+    /* Accent: Verde Turquesa soft */
+    --accent: 170 45% 93%;
+    --accent-foreground: 175 55% 34%;
+    
+    /* Success: Verde Turquesa */
+    --success: 175 55% 42%;
+    --success-foreground: 0 0% 100%;
+    
+    /* Destructive: Coral (for errors) */
+    --destructive: 5 100% 69%;
+    --destructive-foreground: 0 0% 98%;
+    
+    /* Warning */
+    --warning: 45 93% 47%;
+    --warning-foreground: 215 51% 20%;
+    
+    /* CTA: Coral - SOLO para acciones principales */
+    --cta: 5 100% 69%;
+    --cta-foreground: 0 0% 100%;
+    --cta-hover: 5 77% 61%;
+    
+    /* Dental colors - clinical standards */
+    --dental-healthy: 175 55% 42%;
+    --dental-caries: 5 100% 69%;
+    --dental-filling: 215 51% 25%;
+    --dental-crown: 48 96% 53%;
+    --dental-missing: 0 0% 45%;
+    --dental-endodontics: 271 91% 65%;
+    --dental-implant: 175 55% 42%;
+    --dental-fracture: 25 95% 53%;
+    --dental-sealant: 175 55% 50%;
+    --dental-extraction: 5 77% 61%;
+    
+    /* Borders & Inputs */
+    --border: 210 33% 88%;
+    --input: 210 33% 88%;
+    --ring: 175 55% 42%;
+    --radius: 0.5rem;
+    
+    /* Shadows */
+    --shadow-card: 0px 4px 20px rgba(42, 161, 152, 0.08);
+    
+    /* Sidebar - Verde Turquesa Oscuro Institucional / Nexus Deep Medical Teal */
+    --sidebar-background: 175 55% 15%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 175 55% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 175 50% 22%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 175 45% 20%;
+    --sidebar-ring: 175 55% 42%;
+    --sidebar-muted: 175 50% 11%;
+  }
+
+  .dark {
+    /* Core background/foreground */
+    --background: 175 50% 6%;
+    --foreground: 0 0% 98%;
+    
+    /* Cards */
+    --card: 175 50% 9%;
+    --card-foreground: 0 0% 98%;
+    
+    /* Popovers */
+    --popover: 175 50% 9%;
+    --popover-foreground: 0 0% 98%;
+    
+    /* Primary: Verde Turquesa */
+    --primary: 175 55% 48%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 175 55% 40%;
+    --primary-soft: 175 40% 15%;
+    
+    /* Secondary: Verde Turquesa Oscuro */
+    --secondary: 175 50% 20%;
+    --secondary-foreground: 0 0% 98%;
+    --secondary-hover: 175 50% 16%;
+    --secondary-soft: 175 40% 12%;
+    
+    /* Muted */
+    --muted: 175 40% 15%;
+    --muted-foreground: 175 25% 65%;
+    
+    /* Accent */
+    --accent: 175 45% 18%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Destructive */
+    --destructive: 5 80% 55%;
+    --destructive-foreground: 0 0% 98%;
+    
+    /* Warning */
+    --warning: 45 93% 47%;
+    --warning-foreground: 0 0% 98%;
+    
+    /* CTA: Coral */
+    --cta: 5 100% 69%;
+    --cta-foreground: 0 0% 100%;
+    --cta-hover: 5 77% 61%;
+    
+    /* Dental colors - clinical standards */
+    --dental-healthy: 175 55% 48%;
+    --dental-caries: 5 100% 69%;
+    --dental-filling: 215 51% 45%;
+    --dental-crown: 48 96% 53%;
+    --dental-missing: 0 0% 45%;
+    --dental-endodontics: 271 91% 65%;
+    --dental-implant: 175 55% 48%;
+    --dental-fracture: 25 95% 53%;
+    --dental-sealant: 175 55% 55%;
+    --dental-extraction: 5 77% 61%;
+    
+    /* Borders & Inputs */
+    --border: 215 40% 25%;
+    --input: 215 40% 25%;
+    --ring: 175 55% 48%;
+    
+    /* Sidebar - Verde Turquesa Oscuro dark theme */
+    --sidebar-background: 175 60% 10%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 175 55% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 175 45% 16%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 175 45% 14%;
+    --sidebar-ring: 175 55% 48%;
+    --sidebar-muted: 175 50% 8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* CTA Button utility class */
+@layer components {
+  .btn-cta {
+    @apply bg-[hsl(var(--cta))] text-[hsl(var(--cta-foreground))] hover:bg-[hsl(var(--cta-hover))] font-semibold shadow-md transition-all;
+  }
+  
+  .btn-cta:hover {
+    @apply shadow-lg transform -translate-y-0.5;
+  }
+}
+
+/* Animación de Marquesina / Cintillo en Movimiento Continuo */
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.marquee-track {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  display: flex;
+}
+
+.marquee-content,
+.marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee-scroll 22s linear infinite;
+  will-change: transform;
+}
+
+.marquee-content:hover,
+.marquee:hover {
+  animation-play-state: paused;
+}

@@ -1,0 +1,137 @@
+{
+  "name": "agregar_lista_espera",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"nombre\": \"Alexander Grand\",\n  \"telefono\":\"56954675214\",\n  \"servicio\":\"Limpieza Dental\",\n  \"fecha_deseada\":\"Fecha aproximada deseada\",\n  \"horario_preferido\":\"mañana/tarde/cualquiera\"\n \n}"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "lista_espera",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "nombre",
+              "fieldValue": "={{ $json.nombre }}"
+            },
+            {
+              "fieldId": "telefono",
+              "fieldValue": "={{ $json.telefono }}"
+            },
+            {
+              "fieldId": "servicio",
+              "fieldValue": "={{ $json.servicio }}"
+            },
+            {
+              "fieldId": "fecha_deseada",
+              "fieldValue": "={{ $json.fecha_deseada }}"
+            },
+            {
+              "fieldId": "horario_preferido",
+              "fieldValue": "={{ $json.horario_preferido }}"
+            },
+            {
+              "fieldId": "estado",
+              "fieldValue": "pendiente"
+            },
+            {
+              "fieldId": "prioridad",
+              "fieldValue": "0"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        496,
+        352
+      ],
+      "id": "99b13747-4f9c-4f75-b80d-31a13808e3c0",
+      "name": "Insertar en lista espera",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response-msg-001",
+              "name": "mensaje",
+              "value": "=✅ Perfecto {{ $('When Executed by Another Workflow').item.json.nombre }}, te agregamos a la lista de espera para {{ $('When Executed by Another Workflow').item.json.servicio }}.\n\nTe notificaremos por WhatsApp cuando se libere un horario. ⏰",
+              "type": "string"
+            },
+            {
+              "id": "response-status-001",
+              "name": "estado",
+              "value": "exitoso",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        736,
+        352
+      ],
+      "id": "9718d970-7a27-4c64-b9ff-1e412654966c",
+      "name": "Formato respuesta"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Insertar en lista espera",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insertar en lista espera": {
+      "main": [
+        [
+          {
+            "node": "Formato respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "64a7715a-5077-4c38-8428-098817aedc49",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "16c57bc91594644fa4b8c6d1d6d1f1b2091413732919c15da3830e39c89bb9c7"
+  },
+  "nodeGroups": [],
+  "id": "VEPnlQ77r5JyKl2j",
+  "tags": []
+}

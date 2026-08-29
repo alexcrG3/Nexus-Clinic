@@ -1,0 +1,114 @@
+{
+  "name": "listar_doctores",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "2e868e43-0d08-44ab-a5d7-9623faa18aa8",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -432,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "doctores",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "activo",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        -96
+      ],
+      "id": "99ff6461-05c2-4d03-8519-5ae2e2014985",
+      "name": "Obtener doctores",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "lista-doctores",
+              "name": "doctores",
+              "value": "={{ $input.all().map(item => `${item.json.nombre} - ${item.json.especialidad}`).join('\\n') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        16,
+        -96
+      ],
+      "id": "50c7ccf0-92f3-4bc0-a367-42bbe09c19b3",
+      "name": "Formatear lista"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "Odontología general integral"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Obtener doctores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener doctores": {
+      "main": [
+        [
+          {
+            "node": "Formatear lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0f9ab100-4a68-44c1-b336-0996b552ff61",
+  "meta": {
+    "instanceId": "16c57bc91594644fa4b8c6d1d6d1f1b2091413732919c15da3830e39c89bb9c7"
+  },
+  "nodeGroups": [],
+  "id": "NHjHXMbFZieqcEVS",
+  "tags": []
+}

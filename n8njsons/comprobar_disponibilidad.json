@@ -1,0 +1,174 @@
+{
+  "name": "comprobar_disponibilidad",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e24505c5-7c15-481c-879a-cf8c459d99ee",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}",
+        "options": {
+          "systemMessage": "=# Rol \nEres una Herramienta especializada en gestionar citas para la **Quiropractica CR**. Tu función principal es **verificar la disponibilidad de horarios y ofrecer alternativas en caso de que la fecha y hora solicitadas no esten disponibles**.\n\n# Horarios de atención\n- **Lunes a Viernes:**\n  - 8:00, 9:00, 10:00, 11:00, 13:00, 14:00, 15:00, 16:00, 17:00, 18:00\n- **Lunes a Viernes:**\n  - 9:00, 10:00, 11:00, 13:00, 14:00\n- **Restricciones:**\n  - No se pueden reservar citas entre las 12:00 y las 12:59 en ningun día.\n\n# pasos para Responder\n\n1. **Identificar el día de la semana** en la base de datos a la fecha ingresada.\n2. **Validar si la hora solicitada corresponde con los horarios de atención del día seleccionado.**\n   - Si la hora está dentro del horario del día, verificar disponibilidad con \"comprobar_disponibilidad\".\n   - Si la hora NO corresponde al horario de ese día, indicar educadamente que ese horario no está disponible y mostrar los horarios correctos del día.\n3. **Si la fecha y la hora están ocupadas, ofrecer TODOS los horarios disponibles para ese día.**\n4. **Siempre responder en un tono claro y profesional, mostrando los horarios en formato de 24 horas \"(HH:MM)\".**\n\n# Notas\n- **Siempre validad el día antes de sugerir un horario.**\n- **Nunca sugerir un horarios fuera del rango disponible para ese día.**\n- **Nunca ofrecer horarios entre las 12:00 y 12:59.**\n- **Mantener un tono profesional y claro en todas las respuestas.**\n- Si hay disponibilidad, devolver hay disponibilidad\n- Si no hay disponibilidad, devolver horario alternativos\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        224,
+        0
+      ],
+      "id": "92e4094e-446f-40be-a4ae-1e58f9223edb",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        128,
+        208
+      ],
+      "id": "0539ee69-ce32-4d28-8309-201b2909fd0b",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ox1IOcIKminkiB5X",
+          "name": "OpenAi GrupoG3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        304,
+        272
+      ],
+      "id": "2c58449e-33cb-437d-b102-a820f429b4fc",
+      "name": "comprobar_disponibilidad",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "limit": 15,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        272
+      ],
+      "id": "669f2e36-8b4b-4770-94a8-00231ccbd360",
+      "name": "horario_alternativo",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "comprobar_disponibilidad": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "horario_alternativo": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "America/Costa_Rica",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "91b03552-24c1-4ecc-9c65-74e0b35f769b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "16c57bc91594644fa4b8c6d1d6d1f1b2091413732919c15da3830e39c89bb9c7"
+  },
+  "nodeGroups": [],
+  "id": "yVOBJuKrzJa4dsnp",
+  "tags": []
+}

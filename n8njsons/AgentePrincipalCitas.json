@@ -1,0 +1,2488 @@
+{
+  "name": "AgentePrincipalCitas",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1v0gML6Mg-tpeGxF-iDZqH6aXNeG9CfbQ",
+          "mode": "list",
+          "cachedResultName": "📄 DOCUMENTO PARA RAG clinicadental.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/1v0gML6Mg-tpeGxF-iDZqH6aXNeG9CfbQ/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -800,
+        1744
+      ],
+      "id": "c3deeaa5-3661-4558-af29-ca3406a74f30",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "6PDnvQjIEvDuOTDq",
+          "name": "Google Drive account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        -592,
+        1744
+      ],
+      "id": "52a86ee8-4af8-4fcb-b5cd-5fae20304bce",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -720,
+        2048
+      ],
+      "id": "7eeafeae-51cf-4112-a179-3fecefc4dfee",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ox1IOcIKminkiB5X",
+          "name": "OpenAi GrupoG3"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -464,
+        1952
+      ],
+      "id": "3baafa5b-58b0-454f-bfcf-c8edb9fe28a8",
+      "name": "Default Data Loader",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        2160
+      ],
+      "id": "f5a0654e-96a0-4bdb-8d0e-ae2e8c7eed07",
+      "name": "Recursive Character Text Splitter",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.conversation.messages[0].attachments[0].data_url }}",
+                    "rightValue": "ogg",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "3d7bf356-e75d-43a7-958e-b731bde14a5f"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c44ac4d2-6462-470d-882b-0dbb3db98840",
+                    "leftValue": "={{ $json.body.conversation.messages[0].attachments[0].data_url }}",
+                    "rightValue": "jpg",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Imagen"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d190e0e5-43ac-4a8b-8871-59bd6b2b484e",
+                    "leftValue": "={{ $json.body.conversation.messages[0].content_type }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Texto"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Otro"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -80,
+        96
+      ],
+      "id": "bd0cd0e3-a15a-4a1e-9176-242e28d8a370",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.conversation.messages[0].attachments[0].data_url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        336,
+        -64
+      ],
+      "id": "9be92fb5-f5f4-46f8-958d-f18fde1ed17d",
+      "name": "get audio"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        656,
+        -64
+      ],
+      "id": "90117f60-b387-420a-92c9-7f8a39aee3c3",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ox1IOcIKminkiB5X",
+          "name": "OpenAi GrupoG3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ab3e1c44-9a2c-48d7-a5d2-41339a74c99e",
+              "name": "content",
+              "value": "=<audio>\n{{ $json.text }}\n</audio>",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        976,
+        -64
+      ],
+      "id": "341f00e8-8647-4c26-b66d-40ab8258d0f4",
+      "name": "audio content"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.conversation.messages[0].attachments[0].data_url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        336,
+        112
+      ],
+      "id": "a839a8b9-b312-4fbf-853e-05ff6345a08c",
+      "name": "get image"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "text": "Describe de forma ultra detallada lo que ves en al imagen, empezando con algo como:\n\"El usuario envió una imagen que...\".",
+        "imageUrls": "={{ $json.body.conversation.messages[0].attachments[0].data_url }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        656,
+        112
+      ],
+      "id": "009dcf65-4f60-4911-b1bd-ba51dd5ddc3b",
+      "name": "describe image",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ox1IOcIKminkiB5X",
+          "name": "OpenAi GrupoG3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ab3e1c44-9a2c-48d7-a5d2-41339a74c99e",
+              "name": "content",
+              "value": "=<image>\n{{ $json.content }}\n</image>",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        976,
+        112
+      ],
+      "id": "27970033-f8a2-4f32-a380-f81f5db8e44a",
+      "name": "imagen content"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "167b012f-c39d-456c-be8e-6e26462ef70e",
+              "name": "content",
+              "value": "={{ $json.body.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        416
+      ],
+      "id": "9cfa2b4c-9841-45ad-a9af-4a13184b2a2d",
+      "name": "text content"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a30bf65d-3d1a-42ef-bfe6-d03e02b86638",
+              "name": "chat_input",
+              "value": "={{ $json.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1328,
+        112
+      ],
+      "id": "f3d2642b-304b-400c-8ff6-77cdc837e2ec",
+      "name": "chat input"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=mensaje usuario:{{ $('chat input').item.json.chat_input }}\nid conversation:{{ $('Webhook').item.json.body.conversation.messages[0].conversation_id }}\ncontact_id:{{ $('Webhook').item.json.body.conversation.contact_inbox.contact_id }}\nnombre cliente:{{ $('Webhook').item.json.body.conversation.meta.sender.name }}\nnumero de telefono:{{ $('Webhook').item.json.body.conversation.meta.sender.phone_number }}",
+        "options": {
+          "systemMessage": "=# 🤖 Prompt de Agente IA para Manejo de Pacientes en Clínica (vía WhatsApp)\n\n## 1. 🧠 Definición de Identidad\nEres un Asistente virtual de atención de reservas para la Clínica Nova Dental...\n\nHorario oficial de la clínica:\n- Lunes a Viernes: 7:00 am a 6:00 pm\n- Sábados: 9:00 am a 5:00 pm\n- Domingos y feriados: cerrado\n\nSiempre que el paciente pregunte por el horario de la clínica, responde exactamente con estos horarios, sin inventar otros rangos.\n---\n\n## 2. 🧰 Herramientas Disponibles\n\n- **Think**\n  - Utiliza esta herramienta siempre. Resume mentalmente el problema y planifica la respuesta.\n\n- **consultar_cliente**\n  - Utiliza esta herramienta para buscar si el usuario está registrado en la base de datos o el CRM.  \n  - Si el usuario no esta registrado en la base de datos, debes de registralo primero con la herramienta `registrar_cliente`.\n\n- **registrar_cliente** \n  - Si el usuario no existe en el CRM, debes registrarlo solicitando nombre, apellidos y correo. \n\n- **listar_servicios**\n  - Usa esta herramienta para obtener la lista REAL de servicios desde la base de datos (nombre, precio, duración, categoría).\n  - NUNCA modifiques ni adornes el nombre del servicio.\n  - Siempre que necesites elegir un servicio para agendar:\n    1) Llama a `listar_servicios`.\n    2) Elige de esa lista el servicio más adecuado al problema descrito por el paciente.\n    3) Usa EXACTAMENTE el campo `nombre` de ese servicio como `nombre_servicio` cuando llames a cualquier otra herramienta (incluyendo `agendar_cita` o `Agente reservar`).\n  - Está PROHIBIDO generar nombres como \"Evaluación de Odontología General\", \"Odontología general integral\" u otras variantes. Solo puedes usar valores que existan literalmente en la columna `nombre` de la tabla `servicios`.\n\n  - **REGLA CRÍTICA DE SERVICIOS:**\n    - Nunca construyas el `nombre_servicio` a partir de la frase del paciente.\n    - Siempre debes obtener el `nombre_servicio` EXCLUSIVAMENTE de la respuesta de `listar_servicios`.\n    - Debes respetar exactamente mayúsculas, minúsculas y tildes tal como vienen de `listar_servicios`. No agregues palabras antes ni después.\n\n- **comprobar_fecha** \n  Verifica si una fecha y hora solicitadas son válidas según reglas de la clínica (fecha futura, día de semana, horario laboral, etc.).\n\n  Sobre la herramienta comprobar_fecha:\n  - Siempre devuelve estos campos:\n    - valida (boolean): true si la fecha/hora es válida; false si no lo es.\n    - motivo (string): código corto del motivo (por ejemplo: \"ok\", \"fecha_pasada\", \"domingo\", \"fuera_horario\").\n    - mensaje_usuario (string): mensaje ya redactado para el paciente cuando la fecha no es válida.\n    - fecha_formateada (string): fecha y hora en formato dd/MM/yyyy HH:mm.\n\n  Instrucciones obligatorias para comprobar_fecha:\n  1. Llama SIEMPRE primero a comprobar_fecha con la fecha que indique el usuario.\n  2. Si comprobar_fecha.valida es false:\n     - Responde al usuario SOLO con comprobar_fecha.mensaje_usuario.\n     - NO llames a ninguna otra herramienta (no comprobar_disponibilidad, no agendar_cita, no modificar_cita, no cancelar_cita, no enviar_correo).\n  3. Si comprobar_fecha.valida es true:\n     - Usa comprobar_fecha.fecha_formateada para mostrar la fecha en el mensaje.\n     - Luego sí puedes usar comprobar_disponibilidad, agendar_cita, modificar_cita, cancelar_cita, registrar_cita y enviar_correo según corresponda.\n\n- entregar_horarios  \n  Devuelve una lista de horarios disponibles reales para los próximos días para un doctor específico.\n  Recibe SIEMPRE un solo parámetro llamado query, que es SOLO el nombre exacto del doctor como texto plano, no JSON.\n  Ejemplos válidos de parámetro:\n  - Dr. Juan Pérez\n  - Dra. Ana Lara\n  NUNCA debes enviar valores genéricos como \"cualquier doctor\", \"cualquiera\", \"el primero\" ni similares en query. Siempre debes enviar el nombre exacto de un doctor.\n\n\n\n\n  Instrucciones adicionales:\n  - Cuando el paciente elija un doctor pero aún NO haya elegido fecha ni hora (por ejemplo: \"Dr. Juan Pérez\", \"con Juan\", \"la doctora de endodoncia\"):\n    - Debes llamar a `entregar_horarios` enviando exactamente:\n      {\n        \"query\": \"<nombre exacto del doctor elegido>\"\n      }\n    - Luego muestra al paciente de 3 a 6 horarios devueltos por la herramienta para ese doctor.\n\n  - Si el paciente NO menciona ningún doctor, dice que le da igual o responde con algo como \"cualquiera\", \"el primero disponible\" o \"el que usted recomiende\":\n    - Debes elegir tú un doctor automáticamente.\n    - Regla para elegir:\n      1) Si el servicio seleccionado es de Endodoncia, elige primero a la Dra. María López si existe en la base de datos.\n      2) Para otros servicios, elige al primer doctor disponible de la lista (por ejemplo, Dr. Juan Pérez; si no existe, el siguiente).\n    - Una vez elegido el doctor, usa su nombre exacto (por ejemplo \"Dra. Ana Lara\") como valor de `query` al llamar a `entregar_horarios`:\n      {\n        \"query\": \"<nombre exacto del doctor elegido>\"\n      }\n    - Luego muestra al paciente 3 a 6 horarios de ese doctor y pide que elija uno indicando día y hora.\n\n\n  Instrucciones:\n  - Úsala cuando el paciente pida “horarios disponibles”, “opciones de hora” o todavía NO haya elegido una fecha/hora exacta.\n  - Toma los primeros 3 a 6 horarios y preséntalos en texto claro (fecha, hora y doctor).\n  - Después de que el paciente elija uno de esos horarios, entonces sí podrás usar `agendar_cita` para agendarlo.\n  - Regla CRÍTICA: después de que YA mostraste una lista de horarios y el paciente ELIJE uno concreto, TIENES PROHIBIDO volver a llamar `entregar_horarios`. En ese caso DEBES usar primero `comprobar_fecha` y luego `agendar_cita`.\n  - **Regla adicional importante:** si el paciente responde solo con el nombre de un doctor (por ejemplo: \"Dr. Juan Pérez\", \"la doctora de endodoncia\", \"con Juan\"), sin indicar fecha ni hora concreta:\n    - NO debes asumir que eligió uno de los horarios que mostraste antes.\n    - NO debes llamar todavía a `agendar_cita`.\n    - Debes interpretar esto como que el paciente eligió DOCTOR pero NO horario.\n    - En ese caso, filtra o selecciona de los horarios disponibles solo aquellos que correspondan a ese doctor y muestra 3 a 6 opciones de fecha + hora para ese doctor.\n    - Después de mostrar esos horarios del doctor seleccionado, pide explícitamente: \"Elige uno indicando día y hora\", y solo cuando el paciente indique un horario concreto podrás llamar a `comprobar_fecha` y luego a `agendar_cita`.\n\n- **agendar_cita**  \n  Usa esta herramienta SOLO cuando ya tengas:\n  - Fecha y hora concreta (validada antes con `comprobar_fecha`).\n  - Nombre del paciente.\n  - Teléfono.\n  - `nombre_servicio`.\n  - `nombre_doctor` (o un doctor asignado si al paciente le da igual).\n\n  La herramienta devolverá normalmente:\n  - `{\"tipo\": \"cita_agendada\", \"mensaje\": \"...\"}`\n  - o, si algo falla o no hay disponibilidad en ese horario, `{\"tipo\": \"error\", \"mensaje\": \"...\"}`\n\n---\n\n## 3. 🎯 Objetivo Principal\n\nAutomatizar el proceso de **realizar las reservas de manera efectiva**, para que puedan **agendar, modificar o cancelar citas médicas**.  \nEl agente debe brindar atención eficiente, amable y mantener sincronización entre Google Calendar y Supabase.\n\n---\n\n## 4. 📋 Instrucciones Específicas\n\n1. **Inicio de interacción:**\n\n   Al recibir un mensaje de un paciente por WhatsApp, sigue estos pasos:\n\n   1. Usa la herramienta `consultar_cliente` con el número de teléfono del remitente.  \n   2. Si el cliente está registrado:\n      - Salúdalo de forma amable usando su nombre. Ejemplo:  \n        \"Hola {{nombre}}, bienvenido nuevamente a nuestra clínica Nova Dental 😊. ¿En qué puedo ayudarte hoy? ¿Te gustaría agendar, modificar o cancelar una cita?\".\n   \n   3. Si el cliente no está registrado:\n      - Responde de forma cordial y solicita la información para registrarlo:  \n        \"¡Hola! 😊 Antes de ayudarte, necesito registrarte. Por favor, dime tu nombre completo, cédula y correo electrónico.\"\n   4. Espera la respuesta del paciente, y regístralo con `registrar_cliente` y continúa preguntando qué desea realizar.\n\n\n\n4. **Agendamiento de citas:**\n   - Paso 1: Cuando el paciente quiera agendar una cita, primero haz una pregunta abierta en lenguaje sencillo, por ejemplo:\n     - \"¿Qué te está molestando o qué te gustaría mejorar de tu sonrisa?\"\n     - \"¿Vienes por dolor, por una revisión/limpieza, por algo estético o para reemplazar algún diente que falta?\"\n\n   Con la respuesta del paciente:\n   - Interpreta tú mismo el tipo de necesidad, PERO no inventes nombres de servicio.\n   - Llama a `listar_servicios` y, con la descripción del paciente, selecciona el servicio más adecuado de ESA lista.\n   - Usa exactamente el valor de `nombre` de ese servicio como `nombre_servicio` cuando llames a `agendar_cita`.\n   - Solo si realmente necesitas confirmar, menciona el nombre técnico del servicio una vez que ya entendiste el problema del paciente.\n   - No muestres listas largas de servicios técnicos a menos que el paciente lo pida explícitamente.\n\n- Paso 2: Una vez entendido el motivo de consulta:\n\n  - Pregunta: \"¿Te gustaría que te atienda algún doctor en específico o cualquiera que tenga el primer espacio disponible?\"\n\n  - Si el paciente dice \"cualquier doctor\", \"cualquiera\" o \"el primero disponible\":\n    - Debes elegir tú un doctor real de la base de datos (por ejemplo \"Dr. Juan Pérez\" o \"Dra. Ana Lara\").\n    - NO debes pasar \"cualquier doctor\" a la herramienta entregar_horarios.\n    - Debes pasar el nombre exacto del doctor elegido en el parámetro query de entregar_horarios.\n  - Si el paciente no elige un doctor concreto y responde que le da igual, que sea \"cualquiera\" o \"el primero disponible\":\n    - No vuelvas a preguntar por doctor.\n    - Elige tú un doctor siguiendo la misma regla (Endodoncia → Dra. María López; otros servicios → primer doctor disponible).\n    - A partir de ahí, trátalo como si el paciente hubiera dicho explícitamente ese nombre de doctor y sigue el flujo normal con `entregar_horarios`, `comprobar_fecha`, `crear_cita`, `registrar_cita` y `enviar_correo`.\n\n  - Si el paciente aún NO da una fecha/hora exacta:\n    - Llama a `entregar_horarios`.\n    - Muestra al paciente los primeros 3 a 6 horarios devueltos (fecha + hora + doctor) en un solo mensaje claro.\n    - Pide que elija uno de esos horarios o que indique otro que prefiera.\n    - Después de mostrar estos horarios, NO vuelvas a llamar `entregar_horarios` hasta que el paciente haya elegido uno o haya pedido explícitamente “otros horarios”.\n    - Si el paciente responde solo con el nombre de un doctor (por ejemplo: \"Dr. Juan Pérez\", \"con Juan\", \"la doctora de endodoncia\") sin indicar fecha ni hora:\n      - NO asumas que ya eligió uno de los horarios anteriores.\n      - NO llames todavía a `agendar_cita`.\n      - Interpreta que el paciente está eligiendo DOCTOR, pero no horario.\n      - Debes filtrar mentalmente los horarios que ya conoces y responder solo con horarios de ese doctor (3 a 6 opciones máximo) indicando fecha + hora para ese doctor.\n      - Pide explícitamente que el paciente elija uno de esos horarios indicando día y hora. Solo después de que el paciente indique un horario concreto podrás pasar al Paso 3.\n\n- Paso 3: Cuando el paciente elija un horario concreto de la lista que mostraste (por ejemplo: \"el martes 9 a las 8 am\", \"para el miércoles a las 10\", o simplemente \"el primero\"):\n  \n  1. Identifica la fecha y hora exacta que el paciente eligió de tu lista anterior.\n  2. Convierte esa elección a formato ISO sin zona horaria: `YYYY-MM-DDTHH:MM:SS`.\n     - Ejemplo: \"martes 9 de diciembre a las 8 am\" → `2025-12-09T08:00:00`.\n  \n  3. Llama a `comprobar_fecha` con esa fecha ISO para validarla.\n  \n  4. Si `comprobar_fecha.valida` es false:\n     - Responde al paciente SOLO con `comprobar_fecha.mensaje_usuario`.\n     - No llames a ninguna otra herramienta.\n  \n  5. Si `comprobar_fecha.valida` es true:\n     - Llama a `agendar_cita` pasando:\n       * `Fecha`: la fecha ISO que validaste.\n       * `Nombre`: nombre del paciente (ya lo tienes del CRM).\n       * `Telefono`: teléfono del paciente.\n       * `nombre_servicio`: el servicio que identificaste antes (tomado de `listar_servicios`).\n       * `nombre_doctor`: el doctor que eligió el paciente (o el que se asignó).\n     - Usa la respuesta de `agendar_cita` para:\n       - Si la cita se crea correctamente: confirmar la cita al paciente con el mensaje de confirmación.\n       - Si `agendar_cita` indica que NO hay disponibilidad exacta en ese horario:\n         * Indica claramente que no hay disponibilidad en ese horario.\n         * Pregunta: \"¿Quieres que te muestre otros horarios disponibles o prefieres que te agregue a la lista de espera?\"\n         * Si el paciente pide otros horarios:\n           - Puedes llamar UNA sola vez más a `entregar_horarios` para mostrar nuevas opciones que no repitan el horario rechazado.\n\n  6. NO vuelvas a llamar `entregar_horarios` ni muestres la misma lista una y otra vez cuando el paciente ya haya elegido un horario.\n\n- Paso 9: Confirma la cita con emojis:\n  * ✅ Cita confirmada\n  * 👨‍⚕️ Doctor: [nombre]\n  * 🦷 Servicio: [servicio] ($[precio] - [duración] min)\n  * 📅 Fecha: [fecha]\n  * 📍 Clínica Nova Dental: https://maps.app.goo.gl/UU3ypbdmix1R85KWA\n\n5. **Modificar una cita:**\n   - Solicitar fecha y hora actual de la cita.\n   - Usar la herramienta `modificar_cita` para modificar la cita.\n   - Preguntar para cuándo desea cambiar la cita (nueva fecha y hora).\n   - Es sumamente importante que recibas la FECHA y HORA. Si solo recibes la fecha, pregunta por la hora.\n   - Utiliza la herramienta `modificar_cita` para proceder con la modificación.\n   - Entrega los datos de la cita agendada, incluir emojis:\n       - 📅 Fecha: (colocar fecha)\n       - 📍 Clínica Nova Dental: https://maps.app.goo.gl/UU3ypbdmix1R85KWA\n\n6. **Cancelar una cita:**\n   - Pregunta por la fecha y hora actual de la cita a cancelar.\n   - Es sumamente importante que recibas la FECHA y HORA. Si solo recibes la fecha, pregunta por la hora.\n   - Utiliza la herramienta `cancelar_cita` para proceder con la cancelación.\n   \n7. **Estándares de interacción:**\n   - Utiliza `think` antes de responder o ejecutar cualquier acción, también para organizar y planificar tu respuesta.\n   - Cuando ofrezcas horarios, responde siempre en un solo mensaje corto, cálido y directo, evitando textos muy largos o técnicos.\n\n8. **Derivación a asesor:**\n   - Utiliza la herramienta `derivar_asesor` solo cuando el cliente lo pida explícitamente o cuando falte información importante que no puedas obtener tú mismo. No la uses si ya conoces el servicio, el doctor y la fecha y hora de la cita.\n\n9. **Importante:**\n   - Nunca agendes nada sin verificar antes la fecha.\n   - Nunca agendes sin que te den la fecha y hora.\n   - Siempre usar lenguaje profesional y cordial.\n   - Personalizar los mensajes con el nombre del paciente.\n   - Asegúrate de que tu mensaje sea breve y directo, sin utilizar saltos de línea.\n   - Fecha y hora actual: {{ $now.toISO() }}.\n   - Día de la semana hoy: {{ $now.toFormat('cccc') }}.\n   - Nunca muestres una lista de doctores sola. Siempre ofrece horarios concretos (fecha + hora + doctor) para que el paciente solo tenga que elegir una opción.\n   - Importante: Al convertir días de la semana (lunes, martes, etc.) a fechas:\n     * Si el usuario dice \"martes\" y hoy es viernes 6 dic, el próximo martes es 9 de diciembre.\n     * Calcula correctamente los días hasta el día solicitado.\n     * Verifica siempre que la fecha ISO corresponda al día de la semana correcto.\n     * Usa esta fórmula: Si hoy es día X y solicitan día Y, la fecha es X + (diferencia de días).\n   - Para las fechas siempre utilizar el formato ISO sin zona horaria.\n   - Registrar todas las acciones en Supabase para trazabilidad.\n   - Si consultan por algún servicio que no se brinde debes decir que no entendiste la consulta y volver a preguntar.\n   - Solo debes responder consultas relacionadas a la clínica dental y sus servicios.\n\n10. **Lista de espera:**\n   - Cuando el paciente solicita una fecha/hora específica y NO está disponible:\n     * Primero informa que no hay disponibilidad en ese horario.\n     * Ofrece DOS opciones claras:\n       a) \"¿Deseas que te agregue a la lista de espera para ese horario? Te avisaré por WhatsApp cuando se libere.\"\n       b) \"O puedo mostrarte otros horarios disponibles ese día.\"\n   - Si el paciente elige lista de espera, usa la herramienta `agregar_lista_espera`.\n   - Si el paciente quiere ver horarios alternativos, muéstralos (puedes usar `entregar_horarios` para obtenerlos).\n   - Confirma después de agregar: \"Listo, te agregué a la lista de espera para [servicio] el [fecha] en horario [horario preferido]. Te notificaré cuando haya disponibilidad.\"\n\n---"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        3088,
+        96
+      ],
+      "id": "1780f679-95d6-42df-85d6-ba9183678023",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2416,
+        720
+      ],
+      "id": "f8c16cf7-7f13-45c7-acaa-a014bb218446",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ox1IOcIKminkiB5X",
+          "name": "OpenAi GrupoG3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.conversation.meta.sender.phone_number }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        2592,
+        720
+      ],
+      "id": "d45e9eea-da37-46d7-b6ba-49d8a43924ef",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "jAld08nXylF3v639",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://devchatwoot.agentiacr.site/api/v1/accounts/1/conversations/{{ $('Webhook').item.json.body.conversation.messages[0].conversation_id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "CwzKYTCiMQFtjrXLH31GfGq5"
+            },
+            {
+              "name": "X-Webhook-Signature",
+              "value": "={{ $json.output | hmac('sha256', 't@TS*A6JP3Hb@XTrKR@CzWN7Pr3nyAJQ') }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.output }}"
+            },
+            {
+              "name": "private",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3488,
+        96
+      ],
+      "id": "d6255cd5-b56d-4b08-a56f-8715f00893e5",
+      "name": "HTTP Request1",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "32296e83-9721-4774-adb6-ae73757eac3d",
+              "leftValue": "={{ $json.body.message_type }}",
+              "rightValue": "incoming",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -704,
+        128
+      ],
+      "id": "33a5bc10-a298-43be-87c6-1d461847be10",
+      "name": "If1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        368
+      ],
+      "id": "df4b88eb-3281-4a04-8bb1-f5e064fac265",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "description": "Con esta herramienta, verifica si una fecha y hora solicitadas están disponibles",
+        "workflowId": {
+          "__rl": true,
+          "value": "iVfvdV1u3xY4KX71",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/iVfvdV1u3xY4KX71",
+          "cachedResultName": "comprobar_fecha"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Fecha', `Fecha en formato ISO sin zona horaria, ejemplo:\n2025-07-30T10:00:00`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3200,
+        720
+      ],
+      "id": "a9b01aaa-2ed4-4436-bbdf-253ef04e7c43",
+      "name": "comprobar_fecha"
+    },
+    {
+      "parameters": {
+        "description": "con esta herramienta Registra una cita en Google Calendar (formato ISO sin zona horaria) por ejemplo: `2025-07-10T15:30:00`.",
+        "workflowId": {
+          "__rl": true,
+          "value": "gagHBul0Aj0GPsPM",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/gagHBul0Aj0GPsPM",
+          "cachedResultName": "agendar_cita"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Fecha', `Fecha formato ISO sin zona horaria`, 'string') }}",
+            "Nombre": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Nombre', `Nombre del Usuario`, 'string') }}",
+            "Telefono": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Telefono', `Numero telefono de usurario`, 'string') }}",
+            "nombre_servicio": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('nombre_servicio', `Nombre del servicio elegido por el paciente`, 'string') }}",
+            "nombre_doctor": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('nombre_doctor', `Nombre del doctor elegido por el paciente`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "nombre_servicio",
+              "displayName": "nombre_servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "nombre_doctor",
+              "displayName": "nombre_doctor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3472,
+        720
+      ],
+      "id": "bea94b81-6fc9-4253-85d6-e39dab9f3539",
+      "name": "agendar_cita"
+    },
+    {
+      "parameters": {
+        "description": "Con esta Herramienta, actualiza una cita previamente agendada",
+        "workflowId": {
+          "__rl": true,
+          "value": "ucs8CQN57CEex8pX",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ucs8CQN57CEex8pX",
+          "cachedResultName": "modificar_cita"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fecha_actual": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fecha_actual', `fecha nueva ejemplo:\n2025-07-13T15:30:00`, 'string') }}",
+            "fecha_nueva": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fecha_nueva', `formato ISO sin zona horaria por ejemplo:\n2025-07-10T15:30:00`, 'string') }}",
+            "telefono": "={{ $('Webhook').item.json.body.conversation.messages[0].sender.phone_number }}",
+            "nombre": "={{ $('Webhook').item.json.body.conversation.messages[0].sender.name }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "telefono",
+              "displayName": "telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "fecha_actual",
+              "displayName": "fecha_actual",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "fecha_nueva",
+              "displayName": "fecha_nueva",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3632,
+        720
+      ],
+      "id": "5eaeb8c4-13d4-46ae-92a1-33df14a80ffd",
+      "name": "modificar_cita"
+    },
+    {
+      "parameters": {
+        "description": "Con esta Herramienta, Elimina una cita del calendario y actualiza el estado en Supabase",
+        "workflowId": {
+          "__rl": true,
+          "value": "VgiSJAlFrAi0KIbl",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/VgiSJAlFrAi0KIbl",
+          "cachedResultName": "cancelar_cita"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "telefono": "={{ $('Webhook').item.json.body.conversation.messages[0].sender.phone_number }}",
+            "nombre": "={{ $('Webhook').item.json.body.conversation.messages[0].sender.name }}",
+            "fecha_actual": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fecha_actual', `fecha de la cita ejemplo:\n2025-07-13T15:30:00`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "telefono",
+              "displayName": "telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "fecha_actual",
+              "displayName": "fecha_actual",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "fecha_nueva",
+              "displayName": "fecha_nueva",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3792,
+        720
+      ],
+      "id": "f66ea017-1c55-4408-9c5f-d2de5e32e472",
+      "name": "cancelar_cita"
+    },
+    {
+      "parameters": {
+        "description": "=Utiliza esa herramienta think tool para afinar y mejorar tus respuestas o para resolver problemas antes de contestar al usuario."
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        2720,
+        720
+      ],
+      "id": "81f86fa5-6023-4135-ad5b-a36332bcfab0",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "tableId": "clientes",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "created_at",
+              "fieldValue": "={{ $now }}"
+            },
+            {
+              "fieldId": "nombre",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', `Coloca el nombre del cliente`, 'string') }}"
+            },
+            {
+              "fieldId": "apellidos",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', `Coloca los apellidos del cliente`, 'string') }}"
+            },
+            {
+              "fieldId": "cedula",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', `Coloca la cedula del cliente`, 'string') }}"
+            },
+            {
+              "fieldId": "telefono",
+              "fieldValue": "={{ $('Webhook').item.json.body.conversation.meta.sender.phone_number }}"
+            },
+            {
+              "fieldId": "direccion",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues5_Field_Value', `coloca la direccion del cliente`, 'string') }}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues6_Field_Value', `Coloca el email del cliente`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        3024,
+        720
+      ],
+      "id": "4a864b45-dd66-41f8-8310-b7689983dc6f",
+      "name": "registrar_cliente",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "clientes",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "telefono",
+              "keyValue": "={{ $('Webhook').item.json.body.conversation.meta.sender.phone_number }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2848,
+        720
+      ],
+      "id": "26275503-9701-49a8-bb91-7c6d0d3e1d3e",
+      "name": "consultar_cliente",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1808,
+        112
+      ],
+      "id": "558a73c2-37fd-4e25-838a-2871e3158750",
+      "name": "Wait",
+      "webhookId": "7a72d128-79f6-4693-b5be-ee881617e2a5"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2480,
+        304
+      ],
+      "id": "1fa4ba35-c3cc-4823-ab81-7b840554b2a5",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "80d3dab4-bd6c-4f65-be22-a7fb0b1496d2",
+              "name": "mensajes[0]",
+              "value": "={{ $('Redis_Get').item.json.mensajes.join() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2560,
+        96
+      ],
+      "id": "5e4685a2-d6e9-4974-8762-030c088b9022",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0b299514-a2b8-485c-8577-811fc2e88304",
+              "leftValue": "={{ $json.mensajes.last() }}",
+              "rightValue": "={{ $('chat input').item.json.chat_input }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2272,
+        112
+      ],
+      "id": "e83590ac-d59f-47d8-bb1f-601e0c16dd9d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ $('Webhook').item.json.body.conversation.messages[0].sender.phone_number }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2832,
+        96
+      ],
+      "id": "8573fe4e-0f63-466f-830d-cfbd1d712c9c",
+      "name": "redis_elimina_msj",
+      "credentials": {
+        "redis": {
+          "id": "bEaX6RpNe7iuV62S",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "={{ $('Webhook').item.json.body.conversation.messages[0].sender.phone_number }}",
+        "messageData": "={{ $json.chat_input }}",
+        "tail": true
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        112
+      ],
+      "id": "c4f5dc29-5cea-4096-8990-b73cc9b3b89a",
+      "name": "Redis Push",
+      "credentials": {
+        "redis": {
+          "id": "bEaX6RpNe7iuV62S",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "mensajes",
+        "key": "={{ $('Webhook').item.json.body.conversation.messages[0].sender.phone_number }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        112
+      ],
+      "id": "c45499c8-6287-4b75-a71c-e0ebfba3a75c",
+      "name": "Redis_Get",
+      "credentials": {
+        "redis": {
+          "id": "bEaX6RpNe7iuV62S",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e4226e1c-d47a-466e-a4d6-0b7bedddbcc5",
+              "leftValue": "={{ $json.summary }}",
+              "rightValue": "={{ $('Webhook').item.json.body.conversation.messages[0].sender.phone_number }}",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1456,
+        848
+      ],
+      "id": "39c93d67-28b4-48a4-8b1c-e37af55ce875",
+      "name": "Obtener ID"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e4226e1c-d47a-466e-a4d6-0b7bedddbcc5",
+              "leftValue": "={{ $json.summary }}",
+              "rightValue": "={{ $('Webhook').item.json.body.conversation.messages[0].sender.phone_number }}",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1472,
+        560
+      ],
+      "id": "320f9e05-d27e-4edf-9f68-da80aad15d6a",
+      "name": "Obtener ID1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.content }}",
+                    "rightValue": "/No, cancelo cita",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "1709fd6a-25e1-43eb-9ee0-3631a035ea61"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Cancela cita"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7007be59-2587-4754-8da8-34504f5e452c",
+                    "leftValue": "={{ $json.body.content }}",
+                    "rightValue": "/Si, confirmo cita",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Confirma cita"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        480,
+        672
+      ],
+      "id": "8939dac2-57b3-4a0b-a519-bf03f7b97994",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "limit": 20,
+        "timeMin": "={{ $json.startDate }}",
+        "timeMax": "={{ $json.endDate }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1248,
+        560
+      ],
+      "id": "068c533a-dd8c-4980-9b7b-105c44fa141c",
+      "name": "Get many events",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "eventId": "={{ $json.id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1696,
+        560
+      ],
+      "id": "c6aa5974-6e4a-4d83-8691-950cda40f602",
+      "name": "Delete an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://devchatwoot.luminaia.cc/api/v1/accounts/1/conversations/{{ $('Webhook').item.json.body.conversation.messages[0].conversation_id }}/messages",
+        "provideSslCertificates": true,
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "uqs2i7AEg2Ma33p1Cwn4wjf1"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "=Su cita ha sido cancelada, si quiere volver a agendar vuelva a contactarse por este medio, que este muy bien!"
+            },
+            {
+              "name": "private",
+              "value": "false"
+            },
+            {
+              "name": "message_type",
+              "value": "outgoing"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2064,
+        560
+      ],
+      "id": "1ab08402-e477-4ea7-a264-926b7c20ac48",
+      "name": "Enviar mensaje chatwoot1",
+      "executeOnce": true,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "limit": 20,
+        "timeMin": "={{ $json.startDate }}",
+        "timeMax": "={{ $json.endDate }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1248,
+        848
+      ],
+      "id": "dbed61bd-a38f-4155-a466-9f8ab306c6ba",
+      "name": "Get many events1",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://devchatwoot.agentiacr.site/api/v1/accounts/1/conversations/{{ $('Webhook').item.json.body.conversation.messages[0].conversation_id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "CwzKYTCiMQFtjrXLH31GfGq5"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "=Perfecto lo esperamos mañana, nos vemos😉"
+            },
+            {
+              "name": "private",
+              "value": "false"
+            },
+            {
+              "name": "message_type",
+              "value": "outgoing"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2064,
+        848
+      ],
+      "id": "897e3388-2407-4892-8697-4c8d02c89812",
+      "name": "Enviar mensaje chatwoot2",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst inputDate = item.json.formattedDate.trim();   // \"22/04/2025\"\n\n// --- 1. Parsear la fecha DD/MM/YYYY -----------------------------\nconst [day, month, year] = inputDate.split('/').map(Number); // → [22, 4, 2025]\n\n// --- 2. Construir un Date y sumarle 1 día -----------------------\nlet base = new Date(year, month - 1, day);          // mes = 0-based\nbase.setDate(base.getDate() + 1);                   // +1 día\n\n// --- 3. Helper para devolver ISO sin zona horaria --------------\nconst toISO = (d, hour) => {\n  // Creamos un Date en UTC para la hora pedida\n  const utc = new Date(Date.UTC(\n    d.getFullYear(),\n    d.getMonth(),\n    d.getDate(),\n    hour, 0, 0\n  ));\n  return utc.toISOString().slice(0, 19);            // YYYY-MM-DDTHH:MM:SS\n};\n\n// --- 4. Guardar resultados --------------------------------------\nitem.json.startDate = toISO(base, 8);   // 08:00:00\nitem.json.endDate   = toISO(base, 18);  // 18:00:00\n\nreturn [item];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        560
+      ],
+      "id": "a2c7c3e8-ac15-4675-80ed-29b7c8eb2e52",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $now }}",
+        "format": "custom",
+        "customFormat": "dd/MM/yyyy ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        896,
+        560
+      ],
+      "id": "906adb62-7510-464e-9f9c-a4dbfdddfe75",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst inputDate = item.json.formattedDate.trim();   // \"22/04/2025\"\n\n// --- 1. Parsear la fecha DD/MM/YYYY -----------------------------\nconst [day, month, year] = inputDate.split('/').map(Number); // → [22, 4, 2025]\n\n// --- 2. Construir un Date y sumarle 1 día -----------------------\nlet base = new Date(year, month - 1, day);          // mes = 0-based\nbase.setDate(base.getDate() + 1);                   // +1 día\n\n// --- 3. Helper para devolver ISO sin zona horaria --------------\nconst toISO = (d, hour) => {\n  // Creamos un Date en UTC para la hora pedida\n  const utc = new Date(Date.UTC(\n    d.getFullYear(),\n    d.getMonth(),\n    d.getDate(),\n    hour, 0, 0\n  ));\n  return utc.toISOString().slice(0, 19);            // YYYY-MM-DDTHH:MM:SS\n};\n\n// --- 4. Guardar resultados --------------------------------------\nitem.json.startDate = toISO(base, 8);   // 08:00:00\nitem.json.endDate   = toISO(base, 18);  // 18:00:00\n\nreturn [item];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        848
+      ],
+      "id": "a5b4bda6-47a5-43b2-b2ad-296c05f9f7a2",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $now }}",
+        "format": "custom",
+        "customFormat": "dd/MM/yyyy ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        896,
+        848
+      ],
+      "id": "955db8d9-8c43-42a8-b0c6-4acb8e5d8a2f",
+      "name": "Date & Time1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "016a0aef-07ec-4825-9667-67878457542b",
+              "leftValue": "={{ $json.body.conversation.messages[0].content }}",
+              "rightValue": "/No, cancelo cita",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "e5956087-0d17-4f44-a2c0-aa5911a931b0",
+              "leftValue": "={{ $json.body.conversation.messages[0].content }}",
+              "rightValue": "/Si, confirmo cita",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        112,
+        400
+      ],
+      "id": "ace94d8d-6648-4d88-913a-1a7fcd057a07",
+      "name": "Confirmacion de citas"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "=Utiliza esta herramienta para obtener informacion de la clinica y sus servicios.",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        4528,
+        720
+      ],
+      "id": "de419bfd-f4d5-4fa6-aaaa-396ca147512e",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        4576,
+        880
+      ],
+      "id": "00235047-1ec3-4476-a3af-93339e25919c",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ox1IOcIKminkiB5X",
+          "name": "OpenAi GrupoG3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "eventId": "={{ $json.id }}",
+        "updateFields": {
+          "summary": "=🟢{{ $json.summary }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1664,
+        848
+      ],
+      "id": "83e7ff12-c8b9-4d62-b8f7-43e61b798276",
+      "name": "Update an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Con esta herramienta el usuario podrá contactar a un humano para que le asista en su consulta",
+        "workflowId": {
+          "__rl": true,
+          "value": "oULSzcghZCQ0Gg51",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/oULSzcghZCQ0Gg51",
+          "cachedResultName": "derivar_asesor"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation id": "={{ $('Webhook').item.json.body.conversation.messages[0].conversation_id }}",
+            "contact id": "={{ $('Webhook').item.json.body.conversation.contact_inbox.contact_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "conversation id",
+              "displayName": "conversation id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "contact id",
+              "displayName": "contact id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3968,
+        720
+      ],
+      "id": "abfe2dc0-4b4b-43fe-b38c-e7d9066d3bfa",
+      "name": "derivar_asesor"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "32296e83-9721-4774-adb6-ae73757eac3d",
+              "leftValue": "={{ $('Webhook').item.json.body.conversation.messages[0].sender.customattributes.bot }}\n\n\n",
+              "rightValue": "boton_off",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -432,
+        112
+      ],
+      "id": "9ea522de-da63-4115-bcfa-6410f816a3ff",
+      "name": "If2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        -48
+      ],
+      "id": "09f7e898-a284-4d22-9d42-b8da1490f11a",
+      "name": "No Operation, do nothing2"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "53d5377a-1869-4355-b41a-046a2c28ef6a",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -928,
+        128
+      ],
+      "id": "95573fad-a3b1-43a5-9d78-c0d0e66a6a74",
+      "name": "Webhook",
+      "webhookId": "53d5377a-1869-4355-b41a-046a2c28ef6a"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "citas",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "telefono",
+              "condition": "eq",
+              "keyValue": "={{ $('Webhook').item.json.body.conversation.meta.sender.phone_number }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "estado",
+              "fieldValue": "confirmada"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1872,
+        848
+      ],
+      "id": "d40b1759-2407-4267-8a06-4148c02a3a80",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Utiliza esta herramienta cuando NO haya disponibilidad para la fecha/hora solicitada. Registra al paciente en lista de espera y se le notificará automáticamente por WhatsApp cuando se libere un horario",
+        "workflowId": {
+          "__rl": true,
+          "value": "VEPnlQ77r5JyKl2j",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/VEPnlQ77r5JyKl2j",
+          "cachedResultName": "agregar_lista_espera"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nombre": "={{ $fromAI('nombre', `Nombre completo del paciente`, 'string') }}",
+            "servicio": "={{ $fromAI('servicio', `Tipo de servicio solicitado por el paciente`, 'string') }}",
+            "fecha_deseada": "={{ $fromAI('fecha_deseada', `Fecha aproximada que prefiere el paciente en formato ISO`, 'string') }}",
+            "horario_preferido": "={{ $fromAI('horario_preferido', `Preferencia de horario: mañana, tarde o cualquiera`, 'string') }}",
+            "telefono": "={{ $('Webhook').item.json.body.conversation.meta.sender.phone_number }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "telefono",
+              "displayName": "telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "servicio",
+              "displayName": "servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "fecha_deseada",
+              "displayName": "fecha_deseada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "horario_preferido",
+              "displayName": "horario_preferido",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        4128,
+        720
+      ],
+      "id": "c1e6e36f-36b7-4773-b2f3-32380e9d7d44",
+      "name": "agregar_lista_espera"
+    },
+    {
+      "parameters": {
+        "description": "Utiliza esta herramienta para mostrar al paciente todos los servicios disponibles con sus precios y duraciones. Úsala cuando el paciente pregunte qué servicios ofreces o necesite elegir un servicio",
+        "workflowId": {
+          "__rl": true,
+          "value": "N4nVeqp0ONQJyA7A",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/N4nVeqp0ONQJyA7A",
+          "cachedResultName": "listar_servicios"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        4272,
+        720
+      ],
+      "id": "ffb503ab-00de-454a-b575-16c3b0be8b11",
+      "name": "listar_servicios"
+    },
+    {
+      "parameters": {
+        "description": "Utiliza esta herramienta para mostrar al paciente todos los doctores disponibles con sus especialidades. Úsala cuando el paciente necesite elegir un doctor o pregunte quiénes están disponibles",
+        "workflowId": {
+          "__rl": true,
+          "value": "NHjHXMbFZieqcEVS",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/NHjHXMbFZieqcEVS",
+          "cachedResultName": "listar_doctores"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        4400,
+        720
+      ],
+      "id": "36f3c122-84b3-4849-b565-949e46785469",
+      "name": "listar_doctores"
+    },
+    {
+      "parameters": {
+        "name": "entregar_horarios",
+        "description": "Eres la herramienta encargada de entregar horarios disponibles cuando no hay disponibilidad",
+        "workflowId": {
+          "__rl": true,
+          "value": "zKdRqJFEH3pfe09a",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/zKdRqJFEH3pfe09a",
+          "cachedResultName": "Entregar_horarios"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.1,
+      "position": [
+        3344,
+        720
+      ],
+      "id": "2733668e-ebfc-49cb-8f00-c417dc11b2ae",
+      "name": "entregar_horarios"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "get audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "get image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirmacion de citas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get audio": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "audio content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "audio content": {
+      "main": [
+        [
+          {
+            "node": "chat input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get image": {
+      "main": [
+        [
+          {
+            "node": "describe image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "describe image": {
+      "main": [
+        [
+          {
+            "node": "imagen content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "imagen content": {
+      "main": [
+        [
+          {
+            "node": "chat input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "text content": {
+      "main": [
+        [
+          {
+            "node": "chat input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "chat input": {
+      "main": [
+        [
+          {
+            "node": "Redis Push",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "comprobar_fecha": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agendar_cita": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "modificar_cita": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cancelar_cita": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "registrar_cliente": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_cliente": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Redis_Get",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "redis_elimina_msj",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "redis_elimina_msj": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Push": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis_Get": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener ID": {
+      "main": [
+        [
+          {
+            "node": "Update an event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener ID1": {
+      "main": [
+        [
+          {
+            "node": "Delete an event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Date & Time1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events": {
+      "main": [
+        [
+          {
+            "node": "Obtener ID1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete an event": {
+      "main": [
+        [
+          {
+            "node": "Enviar mensaje chatwoot1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events1": {
+      "main": [
+        [
+          {
+            "node": "Obtener ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Get many events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Get many events1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmacion de citas": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "text content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update an event": {
+      "main": [
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "derivar_asesor": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        [
+          {
+            "node": "Enviar mensaje chatwoot2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agregar_lista_espera": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "listar_servicios": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "listar_doctores": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "entregar_horarios": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "America/Costa_Rica",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "versionId": "9b04ce4c-3578-40e2-b0d0-440e5b9ba56f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "16c57bc91594644fa4b8c6d1d6d1f1b2091413732919c15da3830e39c89bb9c7"
+  },
+  "nodeGroups": [],
+  "id": "zQs0FDnKJvcx2eX9",
+  "tags": []
+}

@@ -1,0 +1,479 @@
+{
+  "name": "cancelar_cita",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Fecha actual:{{ $json.fecha_actual }}\nFecha nueva:{{ $json.fecha_nueva }}\nTelefono:{{ $json.telefono }}\nNombre:{{ $json.nombre }}",
+        "options": {
+          "systemMessage": "=# Rol  \nEres un agente virtual especializado en la gestión y modificación de citas. Tienes experiencia en validar, reprogramar y eliminar citas de manera eficiente, asegurando que los cambios cumplan con los requisitos establecidos.  \n\n# Tarea  \nTu tarea es eliminar citas según las solicitudes de los usuarios, siguiendo un proceso estructurado. Para ello, debes:  \n\n1.Buscar id cita actual con \"buscar_id\".\n\n2.Comprobar la fecha de la cita agendada: Usar la herramienta \"eliminar_cita\". para eliminar la cita.\n\n3.Usar la herramienta \"eliminar_cita_db\". para eliminar la cita de la base de datos.  \n\n\n#Formato respuesta:\n{\n\t\"respuesta\": \"La cita se ha sido eliminada para el:\"\n\n}\n\n# Detalles Específicos  \n- Si en algún punto del proceso una validación falla, informar al usuario con una respuesta clara y específica sobre el motivo del rechazo.  \n- Utilizar las herramientas en el orden establecido para garantizar la correcta modificación de la cita.  \n- En caso de que la fecha actual no exista o no corresponda al usuario, informar que la cita no pudo ser encontrada.  \n  \n- Confirmar al usuario cada paso exitoso, asegurando claridad en el proceso.  \n\n# Notas  \n- La fecha de hoy es {{ $now }}  \n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        352,
+        0
+      ],
+      "id": "52e1f934-783b-4df9-86fd-0f57cb1c17d1",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini-2025-04-14",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini-2025-04-14"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        256,
+        336
+      ],
+      "id": "82547bf4-9893-4639-9ae1-e67111c85e3e",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ox1IOcIKminkiB5X",
+          "name": "OpenAi GrupoG3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "limit": 1,
+        "timeMin": "={{ $json.fecha_actual }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', `1 hora despues de la fecha actual`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        432,
+        336
+      ],
+      "id": "2b80933c-85f5-419d-b938-fe62466fa661",
+      "name": "buscar_id",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', `Event id de la cita actual`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        576,
+        336
+      ],
+      "id": "94538510-5fb8-4e43-978f-4f16713aeb6f",
+      "name": "eliminar_cita",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "citas",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "fechaCita",
+              "condition": "eq",
+              "keyValue": "={{ $json.fecha_actual }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        736,
+        336
+      ],
+      "id": "8bd72848-376a-4374-9883-6afeb110cde2",
+      "name": "eliminar_cita_db",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"telefono\": \"+50688888888\",\n  \"nombre\": \"Alexander Guthrie\",\n  \"fecha_actual\": \"2025-05-29\",\n  \"fecha_nueva\": \"2025-06-05\"\n}\n"
+      },
+      "id": "4ec36e7f-1623-41fa-8926-638242b5e03e",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $('When Executed by Another Workflow').first().json;\n\nconst servicio = inputData.servicio || 'General';\nconst fechaCancelada = inputData.fecha_actual;\n\nreturn [{\n  json: {\n    servicio: servicio,\n    fecha_liberada: fechaCancelada,\n    telefono_cancelado: inputData.telefono,\n    nombre_cancelado: inputData.nombre\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "id": "0e2ba9ee-7604-4e94-8d85-4b5cf04afd00",
+      "name": "Extraer datos cita"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "lista_espera",
+        "limit": 3,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "estado",
+              "condition": "eq",
+              "keyValue": "pendiente"
+            },
+            {
+              "keyName": "servicio",
+              "condition": "eq",
+              "keyValue": "={{ $('Extraer datos cita').item.json.servicio }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        944,
+        0
+      ],
+      "id": "9cf65561-ac20-4338-9445-2b1a4f75b7c4",
+      "name": "Buscar lista espera",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-length-001",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1168,
+        0
+      ],
+      "id": "962ebbe1-2748-49b2-b9cb-61b0f92bd717",
+      "name": "Hay personas en espera?"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1392,
+        -80
+      ],
+      "id": "3652da0c-7fd5-495f-a82d-a8b37a143d46",
+      "name": "Loop personas"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "475363895670469",
+        "recipientPhoneNumber": "={{ $json.telefono }}",
+        "textBody": "=¡Hola {{ $json.nombre }}! 👋\n\nSe liberó un horario que solicitaste:\n\n📅 Fecha: {{ $('Extraer datos cita').item.json.fecha_liberada }}\n🏥 Servicio: {{ $json.servicio }}\n\n¿Deseas tomar esta cita?\n\nResponde:\n✅ SÍ para confirmar\n❌ NO para rechazar\n\n*Este horario está disponible por 2 horas*\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        -80
+      ],
+      "id": "03215b06-c708-470a-b160-6ab302282d74",
+      "name": "Notificar WhatsApp",
+      "webhookId": "b5cccfb9-3069-4bb5-aeb4-6754a4c74401",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "sOtr2aCUBvzbucff",
+          "name": "WhatsApp n8nCitas2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "lista_espera",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "estado",
+              "fieldValue": "notificado"
+            },
+            {
+              "fieldId": "notificado_en",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "expira_en",
+              "fieldValue": "={{ $now.plus({hours: 2}).toISO() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        -80
+      ],
+      "id": "dbb70668-c43b-42d0-8af2-5810c787a5bf",
+      "name": "Marcar notificado",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        160
+      ],
+      "id": "2eaa00f6-66c8-41a4-b7d9-07fb6dedc23c",
+      "name": "Sin personas en espera"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_id": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "eliminar_cita": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "eliminar_cita_db": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer datos cita": {
+      "main": [
+        [
+          {
+            "node": "Buscar lista espera",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar lista espera": {
+      "main": [
+        [
+          {
+            "node": "Hay personas en espera?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hay personas en espera?": {
+      "main": [
+        [
+          {
+            "node": "Loop personas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sin personas en espera",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop personas": {
+      "main": [
+        [
+          {
+            "node": "Notificar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Marcar notificado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar notificado": {
+      "main": [
+        [
+          {
+            "node": "Loop personas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Extraer datos cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "America/Costa_Rica",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "a3bdab98-9aca-4a14-9dcc-fb3659477997",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "16c57bc91594644fa4b8c6d1d6d1f1b2091413732919c15da3830e39c89bb9c7"
+  },
+  "nodeGroups": [],
+  "id": "VgiSJAlFrAi0KIbl",
+  "tags": []
+}

@@ -1,0 +1,19 @@
+{
+  "name": "consultar_paciente",
+  "nodes": [],
+  "pinData": {},
+  "connections": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "ffb6544c-2991-4c5c-9da4-d2c77ef1b88b",
+  "meta": {
+    "instanceId": "16c57bc91594644fa4b8c6d1d6d1f1b2091413732919c15da3830e39c89bb9c7"
+  },
+  "nodeGroups": [],
+  "id": "65uxCJ2ymaLEmDWy",
+  "tags": []
+}

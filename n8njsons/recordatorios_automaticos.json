@@ -1,0 +1,737 @@
+{
+  "name": "recordatorios_automaticos",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $now }}",
+        "format": "custom",
+        "customFormat": "dd/MM/yyyy ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "11ef90a4-9d05-4057-bed1-ae7e49ed9f8d",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $now }}",
+        "format": "custom",
+        "customFormat": "dd/MM/yyyy ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        208,
+        272
+      ],
+      "id": "c834690d-1b9f-4db6-ac4f-3e5a3e705603",
+      "name": "Date & Time1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2a1c681a-dcb7-4cab-807a-253bcb8a2a6e",
+              "leftValue": "={{ $json.summary }}",
+              "rightValue": "🟢",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        848,
+        272
+      ],
+      "id": "3364bd17-d26e-419d-8e00-e609952f8228",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 19
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6d70c93f-4887-465d-b987-5cd631cf0d94",
+      "name": "7pm"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 21
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -64,
+        272
+      ],
+      "id": "b3bb045e-b97c-4607-9e71-d42cd92b398c",
+      "name": "9pm"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 23
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        576
+      ],
+      "id": "61d4a86a-8d50-40c7-91fd-2dab32aa78ec",
+      "name": "11pm"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $now }}",
+        "format": "custom",
+        "customFormat": "dd/MM/yyyy ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        240,
+        576
+      ],
+      "id": "d25103eb-418c-4713-a625-741be521c5b2",
+      "name": "Date & Time2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst inputDate = item.json.formattedDate.trim();   // \"22/04/2025\"\n\n// --- 1. Parsear la fecha DD/MM/YYYY -----------------------------\nconst [day, month, year] = inputDate.split('/').map(Number); // → [22, 4, 2025]\n\n// --- 2. Construir un Date y sumarle 1 día -----------------------\nlet base = new Date(year, month - 1, day);          // mes = 0-based\nbase.setDate(base.getDate() + 1);                   // +1 día\n\n// --- 3. Helper para devolver ISO sin zona horaria --------------\nconst toISO = (d, hour) => {\n  // Creamos un Date en UTC para la hora pedida\n  const utc = new Date(Date.UTC(\n    d.getFullYear(),\n    d.getMonth(),\n    d.getDate(),\n    hour, 0, 0\n  ));\n  return utc.toISOString().slice(0, 19);            // YYYY-MM-DDTHH:MM:SS\n};\n\n// --- 4. Guardar resultados --------------------------------------\nitem.json.startDate = toISO(base, 8);   // 08:00:00\nitem.json.endDate   = toISO(base, 18);  // 18:00:00\n\nreturn [item];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "be116d6b-587d-41f5-a309-7457bf0b410f",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "text": "=summary: {{ $json.summary }}\nfecha cita:{{ $json.start.dateTime }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "Nombre",
+              "description": "Nombre"
+            },
+            {
+              "name": "Telefono",
+              "description": "Telefono"
+            },
+            {
+              "name": "Hora",
+              "description": "Solo la hora hh:mm"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        864,
+        0
+      ],
+      "id": "ccc803f3-8544-42c0-9ce1-606c69b969a6",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        976,
+        128
+      ],
+      "id": "453a5917-708d-49f8-87cc-cc4893108a65",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ox1IOcIKminkiB5X",
+          "name": "OpenAi GrupoG3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst inputDate = item.json.formattedDate.trim();   // \"22/04/2025\"\n\n// --- 1. Parsear la fecha DD/MM/YYYY -----------------------------\nconst [day, month, year] = inputDate.split('/').map(Number); // → [22, 4, 2025]\n\n// --- 2. Construir un Date y sumarle 1 día -----------------------\nlet base = new Date(year, month - 1, day);          // mes = 0-based\nbase.setDate(base.getDate() + 1);                   // +1 día\n\n// --- 3. Helper para devolver ISO sin zona horaria --------------\nconst toISO = (d, hour) => {\n  // Creamos un Date en UTC para la hora pedida\n  const utc = new Date(Date.UTC(\n    d.getFullYear(),\n    d.getMonth(),\n    d.getDate(),\n    hour, 0, 0\n  ));\n  return utc.toISOString().slice(0, 19);            // YYYY-MM-DDTHH:MM:SS\n};\n\n// --- 4. Guardar resultados --------------------------------------\nitem.json.startDate = toISO(base, 8);   // 08:00:00\nitem.json.endDate   = toISO(base, 18);  // 18:00:00\n\nreturn [item];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        272
+      ],
+      "id": "2f9a6d8e-1255-4877-af31-87f7748ed25c",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "text": "=summary: {{ $json.summary }}\nfecha cita:{{ $json.start.dateTime }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "Nombre",
+              "description": "Nombre"
+            },
+            {
+              "name": "Telefono",
+              "description": "Telefono"
+            },
+            {
+              "name": "Hora",
+              "description": "Solo la hora hh:mm"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        256
+      ],
+      "id": "b01fd7fc-cf55-4b83-86b9-2bc76755b751",
+      "name": "Information Extractor1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1184,
+        400
+      ],
+      "id": "e600608d-e172-4b98-bf09-5cb0cd6e0ec2",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ox1IOcIKminkiB5X",
+          "name": "OpenAi GrupoG3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst inputDate = item.json.formattedDate.trim();   // \"22/04/2025\"\n\n// --- 1. Parsear la fecha DD/MM/YYYY -----------------------------\nconst [day, month, year] = inputDate.split('/').map(Number); // → [22, 4, 2025]\n\n// --- 2. Construir un Date y sumarle 1 día -----------------------\nlet base = new Date(year, month - 1, day);          // mes = 0-based\nbase.setDate(base.getDate() + 1);                   // +1 día\n\n// --- 3. Helper para devolver ISO sin zona horaria --------------\nconst toISO = (d, hour) => {\n  // Creamos un Date en UTC para la hora pedida\n  const utc = new Date(Date.UTC(\n    d.getFullYear(),\n    d.getMonth(),\n    d.getDate(),\n    hour, 0, 0\n  ));\n  return utc.toISOString().slice(0, 19);            // YYYY-MM-DDTHH:MM:SS\n};\n\n// --- 4. Guardar resultados --------------------------------------\nitem.json.startDate = toISO(base, 8);   // 08:00:00\nitem.json.endDate   = toISO(base, 18);  // 18:00:00\n\nreturn [item];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        576
+      ],
+      "id": "1cc32eab-370b-4cd0-9a2c-f2ba60a608ae",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2a1c681a-dcb7-4cab-807a-253bcb8a2a6e",
+              "leftValue": "={{ $json.summary }}",
+              "rightValue": "🟢",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        576
+      ],
+      "id": "cb34896c-e0b1-4a10-90d7-50a8fb9fbd24",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "iacondiegov@gmail.com",
+          "mode": "list",
+          "cachedResultName": "iacondiegov@gmail.com"
+        },
+        "eventId": "={{ $json.id }}",
+        "updateFields": {
+          "summary": "=🟠{{ $json.summary }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1184,
+        560
+      ],
+      "id": "727ae6ba-69ee-4576-8eba-51147c0e971e",
+      "name": "Google Calendar3",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "phoneNumberId": "475363895670469",
+        "recipientPhoneNumber": "={{ $json.output.Telefono }}",
+        "template": "registro_cliente_clinica|es_CR",
+        "components": {
+          "component": [
+            {
+              "bodyParameters": {
+                "parameter": [
+                  {
+                    "text": "={{ $json.output.Nombre }}"
+                  },
+                  {
+                    "text": "={{ $json.output.Hora }}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "abf4180c-4fb2-4d56-ac6f-36cde6c7412a",
+      "name": "Send template",
+      "webhookId": "417c2776-9b5a-41d8-baee-92f405bd0086",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "sOtr2aCUBvzbucff",
+          "name": "WhatsApp n8nCitas2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "phoneNumberId": "475363895670469",
+        "recipientPhoneNumber": "={{ $json.output.Telefono }}",
+        "template": "registro_cliente_clinica|es_CR",
+        "components": {
+          "component": [
+            {
+              "bodyParameters": {
+                "parameter": [
+                  {
+                    "text": "={{ $json.output.Hora }}"
+                  },
+                  {
+                    "text": "={{ $json.output.Hora }}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        256
+      ],
+      "id": "f8a5b05e-1d6b-4a7f-8837-10ca8d3d123c",
+      "name": "Send template1",
+      "webhookId": "a8994b58-acd6-443c-af70-2ea8bf9811fb",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "sOtr2aCUBvzbucff",
+          "name": "WhatsApp n8nCitas2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "limit": 15,
+        "timeMin": "={{ $json.startDate }}",
+        "timeMax": "={{ $json.endDate }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        0
+      ],
+      "id": "cc934433-df2f-40fd-b164-55e6b97adedc",
+      "name": "Get many events",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "limit": 15,
+        "timeMin": "={{ $json.startDate }}",
+        "timeMax": "={{ $json.endDate }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        576,
+        272
+      ],
+      "id": "64ba0a11-d235-46c8-8e73-06298b387361",
+      "name": "Get many events1",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "guthriemcr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "guthriemcr@gmail.com"
+        },
+        "limit": 15,
+        "timeMin": "={{ $json.startDate }}",
+        "timeMax": "={{ $json.endDate }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        672,
+        576
+      ],
+      "id": "e008f54d-c1de-46f4-bbff-f852d6a814d0",
+      "name": "Get many events2",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Date & Time": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7pm": {
+      "main": [
+        [
+          {
+            "node": "Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9pm": {
+      "main": [
+        [
+          {
+            "node": "Date & Time1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11pm": {
+      "main": [
+        [
+          {
+            "node": "Date & Time2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time2": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Get many events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Send template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Get many events1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor1": {
+      "main": [
+        [
+          {
+            "node": "Send template1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Get many events2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events2": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "America/Costa_Rica",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "versionId": "a3838236-bfdb-4bb6-b5ad-0239854309a7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "16c57bc91594644fa4b8c6d1d6d1f1b2091413732919c15da3830e39c89bb9c7"
+  },
+  "nodeGroups": [],
+  "id": "lIcCpizyDn2iqiCZ",
+  "tags": []
+}

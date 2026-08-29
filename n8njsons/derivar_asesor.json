@@ -1,0 +1,160 @@
+{
+  "name": "derivar_asesor",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## CUANDO APAGAMOS EL BOT?\n- CUANDO EL USUARIO QUIERE HABLAR CON UN HUMANO O HAY ALGUN PROBLEMA CON ALGUNA HERRAMIENTA SE ACTIVA ESTE WORKFLOW, ASIGNAMOS LA ETIQUETA AL CONTACTO Y LUEGO LE ASIGNAMOS LA ETIQUETA BOT OFF PARA QUE EL AGENTE DEJE DE RESPONDERLE AL USUARIO.",
+        "height": 600,
+        "width": 540,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c5f781bd-5aaa-4156-97e5-060f8e85df06",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"conversation id\": \"5\",\n  \"contact id\": \"17\"\n}"
+      },
+      "id": "4d593d04-5f1e-4bfd-a2fa-a80e79e82e76",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -384,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://devchatwoot.agentiacr.site/api/v1/accounts/1/conversations/{{ $('When Executed by Another Workflow').item.json['conversation id'] }}/labels",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "CwzKYTCiMQFtjrXLH31GfGq5"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"labels\": [\"asistencia_ia\"]\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -128,
+        272
+      ],
+      "id": "54fa7786-0f00-42a5-9f1d-c61d5b5f68fb",
+      "name": "etiqueta_asistencia_ia"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://devchatwoot.agentiacr.site/api/v1/accounts/1/contacts/{{ $('When Executed by Another Workflow').item.json['contact id'] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "CwzKYTCiMQFtjrXLH31GfGq5"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"custom_attributes\": {\n    \"bot\": \"boton_off\"\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        128,
+        272
+      ],
+      "id": "4d4a417a-b347-4ef8-aed2-0d3022f17ffe",
+      "name": "apagar bot1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3db5a7b3-8437-4425-87af-0e4826d3fae5",
+              "name": "mensaje enviado",
+              "value": "Perfecto, te voy a transferir con el equipo correspondiente para que puedan ayudarte directamente. Muchas gracias por tu paciencia, en breve te atenderán.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        352,
+        272
+      ],
+      "id": "f930558d-e4f8-44ca-94fd-f68629b1fde5",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "etiqueta_asistencia_ia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "etiqueta_asistencia_ia": {
+      "main": [
+        [
+          {
+            "node": "apagar bot1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "apagar bot1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a5770341-162c-43b2-b987-f93e966b69c2",
+  "meta": {
+    "instanceId": "16c57bc91594644fa4b8c6d1d6d1f1b2091413732919c15da3830e39c89bb9c7"
+  },
+  "nodeGroups": [],
+  "id": "oULSzcghZCQ0Gg51",
+  "tags": []
+}

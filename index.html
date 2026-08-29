@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Nexus Clinic</title>
+    <meta name="description" content="Sistema de gestión de citas y expedientes médicos para clínicas dentales" />
+    <meta name="author" content="Nexus Clinic" />
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#7c3aed" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Nexus Clinic" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Safe area for iOS -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- Prevent zoom on input focus (iOS) -->
+    <meta name="HandheldFriendly" content="true" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Nexus Clinic" />
+    <meta property="og:description" content="Sistema de gestión de citas y expedientes médicos" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/pwa-512x512.png" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Nexus Clinic" />
+    <meta name="twitter:image" content="/pwa-512x512.png" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/nexus-logo.png" />
+
+    <style>
+      /* Safe area padding for notched devices */
+      :root {
+        --sat: env(safe-area-inset-top);
+        --sar: env(safe-area-inset-right);
+        --sab: env(safe-area-inset-bottom);
+        --sal: env(safe-area-inset-left);
+      }
+      
+      /* Prevent pull-to-refresh on PWA */
+      html, body {
+        overscroll-behavior-y: contain;
+      }
+      
+      /* Loading state */
+      #root:empty::after {
+        content: "";
+        display: block;
+        width: 40px;
+        height: 40px;
+        margin: 100px auto;
+        border: 4px solid #e5e7eb;
+        border-top-color: #7c3aed;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

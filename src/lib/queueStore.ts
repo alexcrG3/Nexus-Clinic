@@ -1,0 +1,214 @@
+// Store y Gestor de Turnos en Tiempo Real con BroadcastChannel (Nexus Clinic)
+
+export interface TurnoPaciente {
+  id: string;
+  citaId?: string;
+  nombre: string;
+  doctorNombre?: string;
+  especialidad?: string;
+  consultorio?: string;
+  horaCita?: string;
+  estado: "en_espera" | "llamado" | "atendido" | "cancelado";
+  timestampLlamada?: number;
+  ticketNumero?: string;
+  prioridad?: "preferencial" | "urgencia" | null;
+}
+
+export type MediaContentType = "youtube" | "video_mp4" | "banner_slideshow";
+export type ChimeToneType = "dingdong" | "double_bell" | "synth_chord" | "urgent_pulse";
+export type ClinicThemeColor = "blue" | "emerald" | "purple" | "slate";
+
+export type AdBanner = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  imageUrl: string;
+  sponsorName?: string;
+};
+
+export type VideoPreset = {
+  id: string;
+  name: string;
+  url: string;
+};
+
+export type CommercialVideoItem = {
+  id: string;
+  title: string;
+  url: string;
+  type: "file" | "youtube";
+  durationSeconds?: number;
+  sponsorName?: string;
+};
+
+export type ClinicMediaSettings = {
+  clinicName: string;
+  clinicLogo?: string;
+  themeColor?: ClinicThemeColor;
+  chimeTone?: ChimeToneType;
+  mediaEnabled: boolean;
+  mediaType: MediaContentType;
+  youtubeUrl: string;
+  directVideoUrl: string;
+  videoPresets?: VideoPreset[];
+  videoPlaylist?: CommercialVideoItem[];
+  adBanners: AdBanner[];
+  slideDurationSeconds: number;
+  infoBoxTitle: string;
+  infoBoxItems: string[];
+  selectedVoiceURI: string;
+  voiceRate: number;
+  voicePitch: number;
+};
+
+export const DEFAULT_AD_BANNERS: AdBanner[] = [
+  {
+    id: "banner-1",
+    title: "Jornada de Vacunación e Inmunización",
+    subtitle: "Protege a tu familia con esquemas completos de vacunación.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=1200&auto=format&fit=crop&q=80",
+    sponsorName: "Laboratorios Farmacéuticos",
+  },
+  {
+    id: "banner-2",
+    title: "Chequeo Médico y Exámenes de Laboratorio",
+    subtitle: "Resultados en línea y pruebas de sangre con entrega en 24 horas.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&auto=format&fit=crop&q=80",
+    sponsorName: "Red Médica y Diagnóstico",
+  },
+  {
+    id: "banner-3",
+    title: "Salud Cardiovascular y Control Preventivo",
+    subtitle: "Monitoreo regular de presión arterial y consultas con especialistas.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1628348068343-c6a848d2b6dd?w=1200&auto=format&fit=crop&q=80",
+    sponsorName: "Alianza de Especialistas",
+  },
+];
+
+export const DEFAULT_VIDEO_PRESETS: VideoPreset[] = [
+  {
+    id: "preset-1",
+    name: "🇨🇷 Playas y Naturaleza de Costa Rica 4K",
+    url: "https://www.youtube.com/watch?v=LXb3EKWsInQ",
+  },
+  {
+    id: "preset-2",
+    name: "🌿 Naturaleza y Fauna Tropical 4K",
+    url: "https://www.youtube.com/watch?v=wTcA4b3U7-o",
+  },
+  {
+    id: "preset-3",
+    name: "🌊 Arrecife y Océano Relajante 4K",
+    url: "https://www.youtube.com/watch?v=EngW7tLk6R8",
+  },
+  {
+    id: "preset-4",
+    name: "☕ Café y Música Instrumental",
+    url: "https://www.youtube.com/watch?v=jfKfPfyJRdk",
+  },
+];
+
+export const DEFAULT_VIDEO_PLAYLIST: CommercialVideoItem[] = [
+  {
+    id: "video-1",
+    title: "Anuncio Bisolvon Antitusivo (Sanofi)",
+    url: "https://www.youtube.com/watch?v=WB5UuVtH_EQ",
+    type: "youtube",
+    durationSeconds: 22,
+    sponsorName: "Sanofi",
+  },
+  {
+    id: "video-2",
+    title: "Naturaleza y Playas de Costa Rica 4K",
+    url: "https://www.youtube.com/watch?v=LXb3EKWsInQ",
+    type: "youtube",
+    durationSeconds: 60,
+    sponsorName: "Clínica de la Salud",
+  },
+];
+
+export const DEFAULT_MEDIA_SETTINGS: ClinicMediaSettings = {
+  clinicName: "CLÍNICA DE LA SALUD",
+  clinicLogo: "",
+  themeColor: "blue",
+  chimeTone: "dingdong",
+  mediaEnabled: true,
+  mediaType: "youtube",
+  youtubeUrl: "https://www.youtube.com/watch?v=LXb3EKWsInQ",
+  directVideoUrl:
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+  videoPresets: DEFAULT_VIDEO_PRESETS,
+  videoPlaylist: DEFAULT_VIDEO_PLAYLIST,
+  adBanners: DEFAULT_AD_BANNERS,
+  slideDurationSeconds: 12,
+  infoBoxTitle: "INFORMACIÓN IMPORTANTE PARA PACIENTES",
+  infoBoxItems: [
+    "Por favor permanezca en la sala hasta escuchar el llamado de su turno.",
+    "Tenga listo su documento de identidad oficial al ingresar a consulta.",
+    "Si requiere asistencia especial o silla de ruedas, solicítela en recepción.",
+  ],
+  selectedVoiceURI: "",
+  voiceRate: 0.86,
+  voicePitch: 1.0,
+};
+
+const STORAGE_KEY = "nexus_turnos_queue";
+const CHANNEL_NAME = "nexus_clinic_tv_channel";
+
+export const broadcastChannel = typeof window !== "undefined" ? new BroadcastChannel(CHANNEL_NAME) : null;
+
+export function getTurnosFromStorage(): { turnos: TurnoPaciente[]; ultimoLlamado: TurnoPaciente | null } {
+  if (typeof window === "undefined") return { turnos: [], ultimoLlamado: null };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      // Datos iniciales de demostración si está vacío
+      const demo: TurnoPaciente[] = [
+        { id: "1", nombre: "Jessica Jiménez Mora", doctorNombre: "Dr. Roberto Chaverri", especialidad: "Medicina General", consultorio: "1", horaCita: "08:30", estado: "en_espera", ticketNumero: "A-01", prioridad: null },
+        { id: "2", nombre: "Mauricio Valle Arguedas", doctorNombre: "Dr. Roberto Chaverri", especialidad: "Medicina General", consultorio: "1", horaCita: "08:45", estado: "en_espera", ticketNumero: "A-04", prioridad: null },
+        { id: "3", nombre: "Johnny Pérez Morales", doctorNombre: "Dra. Sofía Huertas", especialidad: "Pediatría", consultorio: "2", horaCita: "09:00", estado: "en_espera", ticketNumero: "P-02", prioridad: "preferencial" },
+        { id: "4", nombre: "Gabriel Céspedes Ruiz", doctorNombre: "Dra. Sofía Huertas", especialidad: "Pediatría", consultorio: "2", horaCita: "09:15", estado: "en_espera", ticketNumero: "P-05", prioridad: "preferencial" },
+        { id: "5", nombre: "Mayra Figueroa Castillo", doctorNombre: "Dra. Carmen Figueroa", especialidad: "Ginecología", consultorio: "3", horaCita: "09:30", estado: "en_espera", ticketNumero: "U-03", prioridad: "urgencia" },
+        { id: "6", nombre: "Karla Vargas Solís", doctorNombre: "Dra. Carmen Figueroa", especialidad: "Ginecología", consultorio: "3", horaCita: "09:45", estado: "en_espera", ticketNumero: "A-06", prioridad: null },
+        { id: "7", nombre: "Esteban Mora Chaves", doctorNombre: "Dr. Andrés Salazar", especialidad: "Odontología", consultorio: "4", horaCita: "10:00", estado: "en_espera", ticketNumero: "A-07", prioridad: null },
+      ];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ turnos: demo, ultimoLlamado: null }));
+      return { turnos: demo, ultimoLlamado: null };
+    }
+    return JSON.parse(raw);
+  } catch (e) {
+    return { turnos: [], ultimoLlamado: null };
+  }
+}
+
+export function saveTurnosToStorage(data: { turnos: TurnoPaciente[]; ultimoLlamado: TurnoPaciente | null }) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn("Error guardando turnos", e);
+  }
+}
+
+export function emitLlamadoEvent(paciente: TurnoPaciente) {
+  if (broadcastChannel) {
+    broadcastChannel.postMessage({
+      type: "LLAMAR_PACIENTE",
+      payload: paciente,
+      timestamp: Date.now(),
+    });
+  }
+}
+
+export function emitFinalizarEvent(officeId: string) {
+  if (broadcastChannel) {
+    broadcastChannel.postMessage({
+      type: "FINALIZAR_CONSULTA",
+      payload: { consultorio: officeId },
+      timestamp: Date.now(),
+    });
+  }
+}

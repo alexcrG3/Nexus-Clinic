@@ -1,0 +1,154 @@
+{
+  "name": "Entregar_horarios",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "ff933296-a613-4beb-87de-210b56b9e4dc",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -304,
+        -576
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "={{ $('Obtener doctores1').item.json.calendar_id }}",
+          "mode": "id"
+        },
+        "limit": 100,
+        "timeMin": "={{ $now.toISO() }}",
+        "timeMax": "={{ $now.plus({days: 8}).toISO() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        64,
+        -576
+      ],
+      "id": "e187acc7-6f4c-4176-8ce8-a8d5e1afedca",
+      "name": "Obtener eventos próximos 10 días",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZXUaCMuh9RfJEe1G",
+          "name": "Google Calendar n8nclinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// === GENERADOR DE HORARIOS DISPONIBLES POR DOCTOR ===\n\n// 1. Eventos ocupados del calendario\nconst eventos = $items('Obtener eventos próximos 10 días');\nconst ocupadosPorDia = {};\n\nconsole.log('=== DEBUG: Total eventos recibidos:', eventos.length);\n\neventos.forEach(item => {\n  const ev = item.json;\n  console.log('Evento:', JSON.stringify(ev, null, 2));\n  \n  if (ev.start && ev.start.dateTime) {\n    const start = new Date(ev.start.dateTime);\n    const end = ev.end && ev.end.dateTime ? new Date(ev.end.dateTime) : start;\n    \n    const fecha = start.toISOString().split('T')[0];\n    const horaInicio = start.toTimeString().substring(0, 5); // HH:MM\n    const horaFin = end.toTimeString().substring(0, 5);\n\n    console.log(`  → Fecha: ${fecha}, Hora: ${horaInicio} - ${horaFin}`);\n\n    if (!ocupadosPorDia[fecha]) ocupadosPorDia[fecha] = [];\n    \n    // Marcar todas las horas ocupadas entre inicio y fin\n    let actual = new Date(start);\n    while (actual < end) {\n      const h = actual.toTimeString().substring(0, 5);\n      if (!ocupadosPorDia[fecha].includes(h)) {\n        ocupadosPorDia[fecha].push(h);\n      }\n      actual.setMinutes(actual.getMinutes() + 60); // cada hora\n    }\n  }\n});\n\nconsole.log('Horas ocupadas por día:', JSON.stringify(ocupadosPorDia, null, 2));\n\n// 2. Datos del doctor elegido\nconst doctor = $items('Obtener doctores1')[0]?.json;\nif (!doctor) {\n  throw new Error('No se encontró el doctor seleccionado');\n}\n\nconsole.log('Doctor seleccionado:', doctor.nombre, 'Calendar ID:', doctor.calendar_id);\n\n// horario_inicio / horario_fin\nconst horaInicio = doctor.horario_inicio.substring(0,5);\nconst horaFin    = doctor.horario_fin.substring(0,5);\n\n// dias_trabajo\nconst diasTrabajo = doctor.dias_trabajo || [];\nconsole.log('Días de trabajo:', diasTrabajo);\n\n// Mapa de número de día a nombre\nconst mapaDias = {\n  0: 'domingo',\n  1: 'lunes',\n  2: 'martes',\n  3: 'miércoles',\n  4: 'jueves',\n  5: 'viernes',\n  6: 'sábado',\n};\n\n// Helper: generar horas\nfunction generarHoras(horaInicio, horaFin, pasoMin = 60) {\n  const horas = [];\n  const [hIni, mIni] = horaInicio.split(':').map(Number);\n  const [hFin, mFin] = horaFin.split(':').map(Number);\n\n  let actual = new Date(2000, 0, 1, hIni, mIni);\n  const fin  = new Date(2000, 0, 1, hFin, mFin);\n\n  while (actual < fin) {\n    const hh = String(actual.getHours()).padStart(2, '0');\n    const mm = String(actual.getMinutes()).padStart(2, '0');\n    horas.push(`${hh}:${mm}`);\n    actual.setMinutes(actual.getMinutes() + pasoMin);\n  }\n  return horas;\n}\n\nconst horasDia = generarHoras(horaInicio, horaFin, doctor.duracion || 60);\nconsole.log('Horas diarias posibles:', horasDia);\n\n// 3. Generar slots\nconst hoy = new Date();\nhoy.setHours(0, 0, 0, 0);\n\nconst horarios = [];\nconst diasBuscados = 3;\nlet diasEncontrados = 0;\nlet d = 0;\n\nwhile (diasEncontrados < diasBuscados && d < 14) {\n  const fecha = new Date(hoy);\n  fecha.setDate(fecha.getDate() + d);\n  d++;\n\n  const diaNum = fecha.getDay();\n  const diaNom = mapaDias[diaNum];\n\n  if (!diasTrabajo.includes(diaNom)) continue;\n\n  const fechaStr = fecha.toISOString().split('T')[0];\n  const ocupadas = ocupadosPorDia[fechaStr] || [];\n\n  console.log(`Día ${fechaStr} (${diaNom}): ocupadas = [${ocupadas.join(', ')}]`);\n\n  for (const hora of horasDia) {\n    if (ocupadas.includes(hora)) {\n      console.log(`  × ${hora} ocupada`);\n      continue;\n    }\n\n    console.log(`  ✓ ${hora} disponible`);\n    horarios.push({\n      fecha: fechaStr,\n      hora,\n      doctor_nombre: doctor.nombre,\n      doctor_id: doctor.id,\n      especialidad: doctor.especialidad,\n    });\n  }\n\n  diasEncontrados++;\n}\n\nconsole.log('Total horarios generados:', horarios.length);\n\nreturn [{ json: { horarios } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        -576
+      ],
+      "id": "93954269-7fe9-4272-976b-c158dbb01618",
+      "name": "Generar horarios disponibles"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "doctores",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "nombre",
+              "condition": "eq",
+              "keyValue": "={{ $('When Executed by Another Workflow').item.json.query }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        -576
+      ],
+      "id": "ba5a73b5-63a4-439c-a2c6-4ce388308570",
+      "name": "Obtener doctores1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// === GENERADOR DE HORARIOS DISPONIBLES POR DOCTOR ===\n\n// 1. Eventos ocupados del calendario\nconst eventos = $items('Obtener eventos próximos 10 días');\nconst ocupadosPorDia = {};\n\neventos.forEach(item => {\n  const ev = item.json;\n  if (ev.start && ev.start.dateTime) {\n    const start = new Date(ev.start.dateTime);\n    const fecha = start.toISOString().split('T')[0];\n    const hora = start.toTimeString().substring(0, 5); // HH:MM\n\n    if (!ocupadosPorDia[fecha]) ocupadosPorDia[fecha] = [];\n    ocupadosPorDia[fecha].push(hora);\n  }\n});\n\n// 2. Datos del doctor elegido\nconst doctor = $items('Obtener doctores1')[0]?.json;\nif (!doctor) {\n  throw new Error('No se encontró el doctor seleccionado');\n}\n\n// horario_inicio / horario_fin por ejemplo \"08:00:00\"\nconst horaInicio = doctor.horario_inicio.substring(0,5); // \"08:00\"\nconst horaFin    = doctor.horario_fin.substring(0,5);    // \"17:00\"\n\n// dias_trabajo es un array JSON de strings: [\"lunes\",\"martes\",...]\nconst diasTrabajo = doctor.dias_trabajo || [];\n\n// Mapa de número de día a nombre\nconst mapaDias = {\n  0: 'domingo',\n  1: 'lunes',\n  2: 'martes',\n  3: 'miércoles',\n  4: 'jueves',\n  5: 'viernes',\n  6: 'sábado',\n};\n\n// Helper: generar horas entre inicio y fin cada 60 min\nfunction generarHoras(horaInicio, horaFin, pasoMin = 60) {\n  const horas = [];\n  const [hIni, mIni] = horaInicio.split(':').map(Number);\n  const [hFin, mFin] = horaFin.split(':').map(Number);\n\n  let actual = new Date(2000, 0, 1, hIni, mIni);\n  const fin  = new Date(2000, 0, 1, hFin, mFin);\n\n  while (actual < fin) {\n    const hh = String(actual.getHours()).padStart(2, '0');\n    const mm = String(actual.getMinutes()).padStart(2, '0');\n    horas.push(`${hh}:${mm}`);\n    actual.setMinutes(actual.getMinutes() + pasoMin);\n  }\n  return horas;\n}\n\nconst horasDia = generarHoras(horaInicio, horaFin, doctor.duracion || 60);\n\n// 3. Generar slots por los próximos 10 días para ESTE doctor\nconst hoy = new Date();\nhoy.setHours(0, 0, 0, 0);\n\nconst horarios = [];\nconst maxHorarios = 6;        // máximo total a devolver\nconst maxPorDia   = 2;        // máximo por día\nconst usadosPorDia = {};\n\nfor (let d = 0; d < 10; d++) {\n  const fecha = new Date(hoy);\n  fecha.setDate(fecha.getDate() + d);\n\n  const diaNum = fecha.getDay();            // 0=Dom\n  const diaNom = mapaDias[diaNum];\n\n  // Saltar si el doctor no trabaja ese día\n  if (!diasTrabajo.includes(diaNom)) continue;\n\n  const fechaStr = fecha.toISOString().split('T')[0];\n  const ocupadas = ocupadosPorDia[fechaStr] || [];\n\n  if (!usadosPorDia[fechaStr]) usadosPorDia[fechaStr] = 0;\n\n  for (const hora of horasDia) {\n    if (ocupadas.includes(hora)) continue;             // hora ocupada en calendar\n    if (usadosPorDia[fechaStr] >= maxPorDia) break;    // ya hay suficientes en ese día\n\n    horarios.push({\n      fecha: fechaStr,\n      hora,\n      doctor_nombre: doctor.nombre,\n      doctor_id: doctor.id,\n      especialidad: doctor.especialidad,\n    });\n\n    usadosPorDia[fechaStr] += 1;\n\n    if (horarios.length >= maxHorarios) break;\n  }\n\n  if (horarios.length >= maxHorarios) break;\n}\n\n// Log para debug\nconsole.log('horarios generados:', horarios);\n\nreturn [{ json: { horarios } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        -800
+      ],
+      "id": "ef786c97-5f2a-49df-a9cc-05c9f2fdb27b",
+      "name": "Generar horarios disponibles1",
+      "disabled": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Obtener doctores1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener eventos próximos 10 días": {
+      "main": [
+        [
+          {
+            "node": "Generar horarios disponibles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener doctores1": {
+      "main": [
+        [
+          {
+            "node": "Obtener eventos próximos 10 días",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "America/Costa_Rica",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "658d913a-f459-4b7c-a414-5b9ae8cbc642",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "16c57bc91594644fa4b8c6d1d6d1f1b2091413732919c15da3830e39c89bb9c7"
+  },
+  "nodeGroups": [],
+  "id": "zKdRqJFEH3pfe09a",
+  "tags": []
+}

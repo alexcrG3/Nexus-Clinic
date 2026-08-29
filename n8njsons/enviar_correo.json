@@ -1,0 +1,203 @@
+{
+  "name": "enviar_correo",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"Fecha\": \"\",\n    \"Nombre\":\"\",\n   \"Telefono\":\"\"\n  \n \n}"
+      },
+      "id": "4c471ba9-4984-4aae-8baf-87b81b6802de",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -1008,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const fecha = $('When Executed by Another Workflow').first().json.Fecha;\nconst date = new Date(fecha);\n\n// Extraer partes\nconst day = String(date.getDate()).padStart(2, '0');\nconst month = String(date.getMonth() + 1).padStart(2, '0'); // Meses van de 0 a 11\nconst year = date.getFullYear();\nconst hours = String(date.getHours()).padStart(2, '0');\nconst minutes = String(date.getMinutes()).padStart(2, '0');\n\n// Formatear como dd/mm/yyyy HH:mm\nconst formato = `${day}/${month}/${year} ${hours}:${minutes}`;\n\nreturn [{ json: { fechaFormateada: formato } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        272
+      ],
+      "id": "b2e92318-93ba-431f-b955-a0f9b7a24477",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "toRecipients": "={{ $('When Executed by Another Workflow').item.json.Correo }}",
+        "subject": "=✅ Confirmación de reunión con Fátima de ITProve",
+        "bodyContent": "=Hola {{ $('When Executed by Another Workflow').item.json.Nombre }}\n\n¡Gracias por contactarnos!.\n\nTe confirmamos que hemos recibido tu información correctamente.\n\nAdemás, tu reunión con nuestro equipo de ITProve ha sido agendada exitosamente .\n\n\n🔔 Detalles de la reunión:\n\nFecha y hora: {{ $json.fechaFormateada }}\n\nModalidad: Microsoft Teams\n\nEnlace:{{ $('When Executed by Another Workflow').item.json['Link cita'] }}\n\nNuestro equipo estará listo para atenderte y ayudarte a encontrar las mejores alternativas para tu requerimiento.\n\nPara conocerte mejor,es IMPORTANTE lo contestes a la brevedad el siguiente formulario:\n\nhttps://forms.office.com/r/sh4mRp0eMe\n\nSi necesitas reprogramar o tienes alguna pregunta previa a la reunión, no dudes en escribirnos.\n\n¡Nos vemos pronto!",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "62e93425-e71d-47f6-95ac-cc40c9252e7b",
+      "name": "Send a message",
+      "webhookId": "3c28669e-b684-4517-bb2a-0edc04d892ee",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Get a row').item.json.email }}",
+        "subject": "=Cita confirmada para {{ $('When Executed by Another Workflow').item.json.Fecha }} a las {{ $('When Executed by Another Workflow').item.json.Fecha }}",
+        "message": "=<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Confirmación de Cita - NovaDental</title>\n    <style>\n        body {\n            font-family: Arial, Helvetica, sans-serif;\n            background-color: #f4f4f4; \n            margin: 0;\n            padding: 0;\n            color: #333333; \n        }\n        .email-container {\n            max-width: 600px;\n            margin: 20px auto;\n            background-color: #ffffff; \n            border: 1px solid #dddddd; \n            border-radius: 8px;\n            overflow: hidden; \n        }\n        .email-header {\n            background-color: #0e6ba8; /* Azul dental elegante */\n            color: #ffffff; \n            padding: 25px 20px; \n            text-align: center;\n        }\n        .email-header h1 {\n            margin: 0;\n            font-size: 26px;\n        }\n        .email-body {\n            padding: 30px 25px; \n            line-height: 1.6;\n            color: #0e6ba8; \n        }\n        .email-body p {\n            font-size: 16px;\n            margin: 0 0 18px; \n        }\n        .highlight {\n            color: #f07c00; /* Naranja para resaltar hora o fecha */\n            font-weight: bold;\n        }\n        .email-body img {\n            display: block;\n            margin: 20px auto;\n            max-width: 120px;\n            height: auto;\n            border: 0;\n            border-radius: 50%;\n        }\n        .email-footer {\n            text-align: center;\n            padding: 20px;\n            background-color: #f4f4f4; \n            border-top: 1px solid #dddddd; \n            font-size: 14px;\n            color: #555555;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"email-container\">\n        <!-- Encabezado -->\n        <div class=\"email-header\">\n            <h1>NovaDental</h1>\n        </div>\n\n        <!-- Cuerpo -->\n        <div class=\"email-body\">\n            <p>Hola <strong>{{ $('When Executed by Another Workflow').item.json.Nombre }}</strong>,</p>\n\n            <p>Tu cita ha sido <strong>confirmada</strong> con NovaDental.</p>\n\n            <p>\n                <strong>Fecha:</strong> <span class=\"highlight\">{{ $('When Executed by Another Workflow').item.json.Fecha }}</span><br>\n                <strong>Hora:</strong> <span class=\"highlight\">{{ $('When Executed by Another Workflow').item.json.Fecha }}</span>\n            </p>\n\n            <p>Por favor, llega 10 minutos antes para tu registro. Si necesitas reprogramar, contáctanos con al menos 24 horas de anticipación.</p>\n\n            <img src=\"https://i.ibb.co/SwnVgXW/dental-logo.png\" alt=\"Logo NovaDental\">\n\n            <p>Gracias por confiar en nosotros.<br>\n            Saludos,<br>\n            El equipo de NovaDental</p>\n        </div>\n\n        <!-- Pie -->\n        <div class=\"email-footer\">\n            <p>&copy; 2025 Clinica Dental CR. Todos los derechos reservados.</p>\n        </div>\n    </div>\n</body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -80,
+        272
+      ],
+      "id": "d6bc3011-7648-47c6-b79c-a490885996ce",
+      "name": "Send a message1",
+      "webhookId": "e2516d79-ba4c-4052-bba6-d93d668bf427",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "vdJOC2CdM0VCLn1M",
+          "name": "Gmail GuthG3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "clientes",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "telefono",
+              "keyValue": "={{ $json.Telefono }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        272
+      ],
+      "id": "3c4862bf-751c-45a3-a276-830e4b49f2bc",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXVnkf12Maqz9rbU",
+          "name": "Supabase n8nClinicas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5ecb7977-1040-4931-bd72-f43e7e28c8a8",
+              "name": "fecha",
+              "value": "={{ $('When Executed by Another Workflow').item.json.Fecha }}",
+              "type": "string"
+            },
+            {
+              "id": "66a0f6f2-e64e-46e3-80b4-20eea84c8b51",
+              "name": "Nombre",
+              "value": "={{ $('When Executed by Another Workflow').item.json.Nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "9ee94c4c-7e63-4a8f-9d95-3b44b7f096c0",
+              "name": "Telefono",
+              "value": "={{ $('When Executed by Another Workflow').item.json.Telefono }}",
+              "type": "string"
+            },
+            {
+              "id": "1a6b0052-2ec1-4678-96ee-ebaa70faeaea",
+              "name": "Correo",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -592,
+        272
+      ],
+      "id": "02bcc723-1958-4700-aa32-0eb2dbec42a7",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "America/Costa_Rica",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "3efa5b38-69da-4b4f-b473-148d4f397a95",
+  "meta": {
+    "instanceId": "16c57bc91594644fa4b8c6d1d6d1f1b2091413732919c15da3830e39c89bb9c7"
+  },
+  "nodeGroups": [],
+  "id": "8TPaw4XKSLMmNbig",
+  "tags": []
+}

@@ -1,0 +1,4 @@
+project_id = "mqmtnhbromprebfjepwe"
+
+[functions.chatwoot-proxy]
+verify_jwt = true
