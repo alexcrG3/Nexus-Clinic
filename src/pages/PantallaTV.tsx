@@ -32,6 +32,7 @@ import {
 import { getLocalVideoBlob } from "@/lib/mediaStorage";
 import { speakPatientCallAsync, playChime } from "@/lib/soundService";
 import { useClinicConfig } from "@/hooks/useClinicConfig";
+import { supabase } from "@/integrations/supabase/client";
 
 // Componente de carrusel de afiches
 const BannerSlideshow = ({ banners, durationSeconds }: { banners: AdBanner[]; durationSeconds: number }) => {
@@ -328,42 +329,68 @@ export const PantallaTV = () => {
     soundEnabledRef.current = soundEnabled;
   }, [soundEnabled]);
 
-  // Escuchar llamados y finalizaciones en tiempo real desde el BroadcastChannel
+  const handleIncomingTvEvent = (data: any) => {
+    if (!data || !data.type) return;
+
+    if (data.type === "LLAMAR_PACIENTE") {
+      const paciente = data.payload as TurnoPaciente;
+      pendingQueueRef.current.push(paciente);
+      // Actualizar estado local de turnos
+      setTurnos((prev) => {
+        const found = prev.some((t) => t.id === paciente.id);
+        if (found) {
+          return prev.map((t) => (t.id === paciente.id ? { ...t, estado: "llamado", consultorio: paciente.consultorio } : t));
+        }
+        return [paciente, ...prev];
+      });
+      processAudioQueue();
+    } else if (data.type === "FINALIZAR_CONSULTA" || data.type === "CANCELAR_LLAMADO") {
+      const { consultorio } = data.payload || {};
+      setActiveSpeakingPatient((prev) => (prev?.consultorio === consultorio ? null : prev));
+      const storageData = getTurnosFromStorage();
+      setTurnos(storageData.turnos);
+      const atendidos = storageData.turnos.filter((t) => t.estado === "atendido" || t.estado === "llamado");
+      setHistorialLlamados(atendidos);
+    } else if (data.type === "CLEAR_QUEUE") {
+      pendingQueueRef.current = [];
+      setActiveSpeakingPatient(null);
+      setTurnos([]);
+      setHistorialLlamados([]);
+    } else if (data.type === "RESET_QUEUE") {
+      pendingQueueRef.current = [];
+      const storageData = getTurnosFromStorage();
+      setTurnos(storageData.turnos);
+      setActiveSpeakingPatient(storageData.ultimoLlamado);
+      setHistorialLlamados([]);
+    } else if (data.type === "UPDATE_MARQUEE") {
+      setMarqueeText(data.payload);
+    } else if (data.type === "UPDATE_MEDIA_SETTINGS") {
+      setMediaSettings(data.payload);
+    }
+  };
+
+  // 1. Escuchar llamados desde BroadcastChannel (mismo navegador / PC)
   useEffect(() => {
     if (!broadcastChannel) return;
-
     const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "LLAMAR_PACIENTE") {
-        const paciente = event.data.payload as TurnoPaciente;
-        pendingQueueRef.current.push(paciente);
-        processAudioQueue();
-      } else if (event.data?.type === "FINALIZAR_CONSULTA" || event.data?.type === "CANCELAR_LLAMADO") {
-        const { consultorio } = event.data.payload || {};
-        setActiveSpeakingPatient((prev) => (prev?.consultorio === consultorio ? null : prev));
-        const data = getTurnosFromStorage();
-        setTurnos(data.turnos);
-        const atendidos = data.turnos.filter((t) => t.estado === "atendido" || t.estado === "llamado");
-        setHistorialLlamados(atendidos);
-      } else if (event.data?.type === "CLEAR_QUEUE") {
-        pendingQueueRef.current = [];
-        setActiveSpeakingPatient(null);
-        setTurnos([]);
-        setHistorialLlamados([]);
-      } else if (event.data?.type === "RESET_QUEUE") {
-        pendingQueueRef.current = [];
-        const data = getTurnosFromStorage();
-        setTurnos(data.turnos);
-        setActiveSpeakingPatient(data.ultimoLlamado);
-        setHistorialLlamados([]);
-      } else if (event.data?.type === "UPDATE_MARQUEE") {
-        setMarqueeText(event.data.payload);
-      } else if (event.data?.type === "UPDATE_MEDIA_SETTINGS") {
-        setMediaSettings(event.data.payload);
-      }
+      handleIncomingTvEvent(event.data);
     };
-
     broadcastChannel.addEventListener("message", handleMessage);
     return () => broadcastChannel.removeEventListener("message", handleMessage);
+  }, []);
+
+  // 2. Escuchar llamados desde Supabase Realtime por Internet (Celulares, Tablets, Remoto)
+  useEffect(() => {
+    const channel = supabase
+      .channel("nexus-tv-remote")
+      .on("broadcast", { event: "TV_SIGNAL" }, ({ payload }) => {
+        handleIncomingTvEvent(payload);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Pantalla completa toggle

@@ -229,58 +229,65 @@ export function saveTurnosToStorage(data: { turnos: TurnoPaciente[]; ultimoLlama
   }
 }
 
+import { supabase } from "@/integrations/supabase/client";
+
+export const tvRealtimeChannel = supabase.channel("nexus-tv-remote");
+tvRealtimeChannel.subscribe();
+
+export function sendTvSignal(type: string, payload: any) {
+  const messageData = { type, payload, timestamp: Date.now() };
+
+  // 1. Canal local del navegador (mismo equipo)
+  if (broadcastChannel) {
+    try {
+      broadcastChannel.postMessage(messageData);
+    } catch (e) {
+      console.warn("Error en broadcastChannel local:", e);
+    }
+  }
+
+  // 2. Canal Supabase Realtime por Internet (Celular, Tablet, Smart TV remota)
+  try {
+    tvRealtimeChannel.send({
+      type: "broadcast",
+      event: "TV_SIGNAL",
+      payload: messageData,
+    });
+  } catch (e) {
+    console.warn("Error enviando señal realtime al TV:", e);
+  }
+}
+
 export function clearTurnosQueue(): { turnos: TurnoPaciente[]; ultimoLlamado: TurnoPaciente | null } {
   const emptyState = { turnos: [], ultimoLlamado: null };
   saveTurnosToStorage(emptyState);
-  if (broadcastChannel) {
-    broadcastChannel.postMessage({
-      type: "CLEAR_QUEUE",
-      payload: {},
-      timestamp: Date.now(),
-    });
-  }
+  sendTvSignal("CLEAR_QUEUE", {});
   return emptyState;
 }
 
 export function resetToDemoTurnos(): { turnos: TurnoPaciente[]; ultimoLlamado: TurnoPaciente | null } {
   const demoState = { turnos: DEMO_TURNOS, ultimoLlamado: null };
   saveTurnosToStorage(demoState);
-  if (broadcastChannel) {
-    broadcastChannel.postMessage({
-      type: "RESET_QUEUE",
-      payload: demoState,
-      timestamp: Date.now(),
-    });
-  }
+  sendTvSignal("RESET_QUEUE", demoState);
   return demoState;
 }
 
 export function emitLlamadoEvent(paciente: TurnoPaciente) {
-  if (broadcastChannel) {
-    broadcastChannel.postMessage({
-      type: "LLAMAR_PACIENTE",
-      payload: paciente,
-      timestamp: Date.now(),
-    });
-  }
+  sendTvSignal("LLAMAR_PACIENTE", paciente);
 }
 
 export function emitFinalizarEvent(officeId: string) {
-  if (broadcastChannel) {
-    broadcastChannel.postMessage({
-      type: "FINALIZAR_CONSULTA",
-      payload: { consultorio: officeId },
-      timestamp: Date.now(),
-    });
-  }
+  sendTvSignal("FINALIZAR_CONSULTA", { consultorio: officeId });
 }
 
 export function emitCancelarLlamadoEvent(officeId: string) {
-  if (broadcastChannel) {
-    broadcastChannel.postMessage({
-      type: "CANCELAR_LLAMADO",
-      payload: { consultorio: officeId },
-      timestamp: Date.now(),
-    });
-  }
+  sendTvSignal("CANCELAR_LLAMADO", { consultorio: officeId });
+}
+
+export function emitUpdateMarquee(text: string) {
+  sendTvSignal("UPDATE_MARQUEE", text);
+}
+
+export function emitUpdateMediaSettings(settings: Partial<ClinicMediaSettings>) {
+  sendTvSignal("UPDATE_MEDIA_SETTINGS", settings);
 }

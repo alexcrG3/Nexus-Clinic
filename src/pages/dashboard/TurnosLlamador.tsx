@@ -362,9 +362,9 @@ export const TurnosLlamador = () => {
     refetchInterval: 6000,
   });
 
-  // Realtime subscription para citas
+  // Realtime subscription para citas y llamados remotos
   useEffect(() => {
-    const channel = supabase
+    const citasChannel = supabase
       .channel("citas-realtime-llamador")
       .on("postgres_changes", { event: "*", schema: "public", table: "citas" }, () => {
         queryClient.invalidateQueries({ queryKey: ["citas-llamador-db"] });
@@ -372,8 +372,29 @@ export const TurnosLlamador = () => {
       })
       .subscribe();
 
+    const remoteSignalChannel = supabase
+      .channel("nexus-tv-remote-dashboard")
+      .on("broadcast", { event: "TV_SIGNAL" }, ({ payload }) => {
+        if (!payload || !payload.type) return;
+        if (payload.type === "LLAMAR_PACIENTE") {
+          const paciente = payload.payload as TurnoPaciente;
+          setUltimoLlamado(paciente);
+          setTurnos((prev) =>
+            prev.map((t) => (t.id === paciente.id ? { ...t, estado: "llamado", consultorio: paciente.consultorio } : t))
+          );
+        } else if (payload.type === "FINALIZAR_CONSULTA" || payload.type === "CANCELAR_LLAMADO") {
+          const { consultorio } = payload.payload || {};
+          setUltimoLlamado((prev) => (prev?.consultorio === consultorio ? null : prev));
+          setTurnos((prev) =>
+            prev.map((t) => (t.consultorio === consultorio && t.estado === "llamado" ? { ...t, estado: "atendido" } : t))
+          );
+        }
+      })
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(citasChannel);
+      supabase.removeChannel(remoteSignalChannel);
     };
   }, [queryClient]);
 
