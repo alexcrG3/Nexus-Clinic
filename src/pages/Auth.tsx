@@ -160,11 +160,11 @@ const Auth = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary via-primary/95 to-slate-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-12 items-center py-10">
+    <div className="min-h-[100dvh] h-[100dvh] lg:min-h-screen lg:h-auto bg-gradient-to-br from-primary via-primary/95 to-slate-950 flex flex-col items-center justify-center p-3 sm:p-4 overflow-hidden lg:overflow-auto">
+      <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-6 lg:gap-12 items-center my-auto">
         
-        {/* Lado Izquierdo - Branding */}
-        <div className="text-white space-y-8 text-left">
+        {/* Lado Izquierdo - Branding (Completo en desktop, encabezado compacto en mobile) */}
+        <div className="text-white text-left hidden lg:block space-y-8">
           <div className="flex items-center gap-3">
             <div className="h-16 w-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-xl">
               <Stethoscope className="h-8 w-8 text-white" />
@@ -193,7 +193,7 @@ const Auth = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-xs">{feature.title}</h3>
-                  <p className="text-[10px] text-white/70 mt-0.5 hidden md:block">{feature.description}</p>
+                  <p className="text-[10px] text-white/70 mt-0.5">{feature.description}</p>
                 </div>
               </div>
             ))}
@@ -212,13 +212,24 @@ const Auth = () => {
           </div>
         </div>
 
-        {/* Lado Derecho - Formulario de Login / Registro */}
-        <Card className="shadow-2xl border-0 rounded-3xl overflow-hidden bg-white text-slate-900">
-          <CardHeader className="text-center space-y-1.5 pb-4 bg-slate-50 border-b border-slate-100">
-            <CardTitle className="text-2xl font-black text-slate-900">
+        {/* Encabezado compacto SOLO para mobile */}
+        <div className="flex items-center justify-center gap-2.5 mb-1 lg:hidden text-white">
+          <div className="size-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-md shrink-0">
+            <Stethoscope className="size-5 text-white" />
+          </div>
+          <div className="text-left">
+            <h1 className="text-lg font-black tracking-tight text-white leading-tight">{clinicName}</h1>
+            <p className="text-[10px] text-white/80 font-medium">Clínica Odontológica & Salud Digital</p>
+          </div>
+        </div>
+
+        {/* Lado Derecho - Formulario de Login / Registro (Ajustado a 100% de pantalla sin scroll) */}
+        <Card className="shadow-2xl border-0 rounded-2xl sm:rounded-3xl overflow-hidden bg-white text-slate-900 w-full max-w-md mx-auto">
+          <CardHeader className="text-center space-y-0.5 py-2.5 sm:py-4 px-4 bg-slate-50 border-b border-slate-100">
+            <CardTitle className="text-lg sm:text-2xl font-black text-slate-900">
               {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
             </CardTitle>
-            <CardDescription className="text-xs text-slate-500">
+            <CardDescription className="text-[11px] sm:text-xs text-slate-500">
               {isLogin 
                 ? 'Ingresa tus credenciales para acceder a tus citas o panel'
                 : 'Completa tus datos para crear tu cuenta personal'
@@ -226,50 +237,49 @@ const Auth = () => {
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="p-6 sm:p-8">
-            <form onSubmit={handleSubmit} className="space-y-4 text-left">
+          <CardContent className="p-3.5 sm:p-6">
+            <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3.5 text-left">
               
               {/* Selector de Tipo de Cuenta si es Registro */}
               {!isLogin && (
-                <div className="space-y-3">
-                  <Label className="text-xs font-bold">Tipo de Cuenta</Label>
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setAccountType('paciente')}
-                      className={`p-3 rounded-2xl border text-left transition-all flex items-center gap-2.5 ${
+                      className={`p-2 rounded-xl border text-left transition-all flex items-center gap-2 ${
                         accountType === 'paciente'
                           ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm'
                           : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                       }`}
                     >
-                      <User className="w-5 h-5 shrink-0" />
+                      <User className="w-4 h-4 shrink-0" />
                       <div className="leading-tight">
-                        <span className="text-xs block">Soy Paciente</span>
-                        <span className="text-[10px] text-muted-foreground font-normal">Acceso inmediato</span>
+                        <span className="text-[11px] font-bold block">Soy Paciente</span>
+                        <span className="text-[9px] text-muted-foreground font-normal">Acceso inmediato</span>
                       </div>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setAccountType('staff')}
-                      className={`p-3 rounded-2xl border text-left transition-all flex items-center gap-2.5 ${
+                      className={`p-2 rounded-xl border text-left transition-all flex items-center gap-2 ${
                         accountType === 'staff'
                           ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm'
                           : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                       }`}
                     >
-                      <Stethoscope className="w-5 h-5 shrink-0" />
+                      <Stethoscope className="w-4 h-4 shrink-0" />
                       <div className="leading-tight">
-                        <span className="text-xs block">Doctor / Personal</span>
-                        <span className="text-[10px] text-muted-foreground font-normal">Requiere validación</span>
+                        <span className="text-[11px] font-bold block">Doctor / Personal</span>
+                        <span className="text-[9px] text-muted-foreground font-normal">Validación clínica</span>
                       </div>
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-1">
-                    <div className="space-y-1">
-                      <Label htmlFor="nombre" className="text-xs">Nombre</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="nombre" className="text-[10px] sm:text-xs">Nombre</Label>
                       <Input
                         id="nombre"
                         type="text"
@@ -277,11 +287,11 @@ const Auth = () => {
                         value={nombre}
                         onChange={(e) => setNombre(e.target.value)}
                         required
-                        className="h-10 text-xs rounded-xl"
+                        className="h-8 sm:h-9 text-xs rounded-lg"
                       />
                     </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="apellidos" className="text-xs">Apellidos</Label>
+                    <div className="space-y-0.5">
+                      <Label htmlFor="apellidos" className="text-[10px] sm:text-xs">Apellidos</Label>
                       <Input
                         id="apellidos"
                         type="text"
@@ -289,13 +299,13 @@ const Auth = () => {
                         value={apellidos}
                         onChange={(e) => setApellidos(e.target.value)}
                         required
-                        className="h-10 text-xs rounded-xl"
+                        className="h-8 sm:h-9 text-xs rounded-lg"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor="telefono" className="text-xs">Teléfono / WhatsApp</Label>
+                  <div className="space-y-0.5">
+                    <Label htmlFor="telefono" className="text-[10px] sm:text-xs">Teléfono / WhatsApp</Label>
                     <Input
                       id="telefono"
                       type="tel"
@@ -303,15 +313,15 @@ const Auth = () => {
                       value={telefono}
                       onChange={(e) => setTelefono(e.target.value)}
                       required
-                      className="h-10 text-xs rounded-xl"
+                      className="h-8 sm:h-9 text-xs rounded-lg"
                     />
                   </div>
                 </div>
               )}
 
               {/* Email */}
-              <div className="space-y-1">
-                <Label htmlFor="email" className="text-xs font-bold">Correo Electrónico</Label>
+              <div className="space-y-0.5 sm:space-y-1">
+                <Label htmlFor="email" className="text-[11px] sm:text-xs font-bold">Correo Electrónico</Label>
                 <Input
                   id="email"
                   type="email"
@@ -319,13 +329,13 @@ const Auth = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="h-10 text-xs rounded-xl"
+                  className="h-8 sm:h-9 text-xs rounded-xl"
                 />
               </div>
 
               {/* Password */}
-              <div className="space-y-1">
-                <Label htmlFor="password" className="text-xs font-bold">Contraseña</Label>
+              <div className="space-y-0.5 sm:space-y-1">
+                <Label htmlFor="password" className="text-[11px] sm:text-xs font-bold">Contraseña</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -334,14 +344,14 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="h-10 text-xs rounded-xl pr-10"
+                    className="h-8 sm:h-9 text-xs rounded-xl pr-9"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
                 </div>
               </div>
@@ -350,14 +360,14 @@ const Auth = () => {
               <Button 
                 type="submit" 
                 disabled={submitting}
-                className="w-full h-11 text-xs sm:text-sm font-bold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg shadow-primary/25 transition-all mt-2"
+                className="w-full h-9 sm:h-10 text-xs sm:text-sm font-bold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-md shadow-primary/25 transition-all mt-1"
               >
                 {submitting ? 'Procesando...' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>
 
               {/* Toggle Login/Registro */}
-              <div className="text-center pt-3 border-t border-slate-100 text-xs text-slate-500">
+              <div className="text-center pt-2 border-t border-slate-100 text-[11px] sm:text-xs text-slate-500">
                 <button
                   type="button"
                   onClick={() => setIsLogin(!isLogin)}
@@ -371,11 +381,11 @@ const Auth = () => {
               </div>
 
               {/* Accesos Rápidos de Prueba */}
-              <div className="pt-3 border-t border-slate-100 text-left">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+              <div className="pt-2 border-t border-slate-100 text-left">
+                <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                   ⚡ Cuentas de Prueba:
                 </span>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   <button
                     type="button"
                     onClick={() => {
@@ -383,9 +393,9 @@ const Auth = () => {
                       setPassword("admin123");
                       setIsLogin(true);
                     }}
-                    className="p-2 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary text-left text-[11px] font-bold transition-all"
+                    className="py-1 px-2 rounded-lg border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary text-left text-[10px] sm:text-[11px] font-bold transition-all truncate"
                   >
-                    👑 SuperAdmin (Centro Mando)
+                    👑 SuperAdmin
                   </button>
                   <button
                     type="button"
@@ -394,9 +404,9 @@ const Auth = () => {
                       setPassword("doctor123");
                       setIsLogin(true);
                     }}
-                    className="p-2 rounded-xl border border-primary/20 bg-slate-50 hover:bg-slate-100 text-slate-800 text-left text-[11px] font-semibold transition-all"
+                    className="py-1 px-2 rounded-lg border border-primary/20 bg-slate-50 hover:bg-slate-100 text-slate-800 text-left text-[10px] sm:text-[11px] font-semibold transition-all truncate"
                   >
-                    👨‍⚕️ Doctor / Clínica
+                    👨‍⚕️ Doctor
                   </button>
                 </div>
               </div>
