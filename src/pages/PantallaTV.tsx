@@ -268,6 +268,21 @@ export const PantallaTV = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Desbloquear audio y sintetizador de voz en Tablets al primer toque
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.resume();
+      }
+    };
+    window.addEventListener("touchstart", unlockAudio, { once: true });
+    window.addEventListener("click", unlockAudio, { once: true });
+    return () => {
+      window.removeEventListener("touchstart", unlockAudio);
+      window.removeEventListener("click", unlockAudio);
+    };
+  }, []);
+
   // Carga inicial de turnos
   useEffect(() => {
     const data = getTurnosFromStorage();
