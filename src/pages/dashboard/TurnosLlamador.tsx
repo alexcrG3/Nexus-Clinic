@@ -898,20 +898,38 @@ export const TurnosLlamador = () => {
 
         {/* Filtro de consultorios */}
         {activeTab === "offices" && (
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-400 font-semibold">Filtrar consultorio:</span>
-            <select
-              value={selectedOfficeFilter}
-              onChange={(e) => setSelectedOfficeFilter(e.target.value)}
-              className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-white focus:border-sky-500 focus:outline-none"
-            >
-              <option value="all">Ver Todos los Consultorios (Recepción)</option>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-slate-400 font-semibold flex items-center gap-1">
+              <Stethoscope className="size-3.5 text-sky-400" />
+              <span>Médico / Consultorio:</span>
+            </span>
+            <div className="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+              <button
+                type="button"
+                onClick={() => setSelectedOfficeFilter("all")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  selectedOfficeFilter === "all"
+                    ? "bg-sky-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Todos (Recepción)
+              </button>
               {offices.map((off) => (
-                <option key={off.id} value={off.id}>
-                  {off.name} · {off.doctor}
-                </option>
+                <button
+                  key={off.id}
+                  type="button"
+                  onClick={() => setSelectedOfficeFilter(off.id)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                    selectedOfficeFilter === off.id
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {off.name} ({off.doctor.split(" ")[0]} {off.doctor.split(" ")[1] || ""})
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         )}
       </div>

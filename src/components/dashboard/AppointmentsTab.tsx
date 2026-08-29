@@ -14,7 +14,8 @@ import {
   AlertCircle,
   CalendarDays,
   Stethoscope,
-  Edit
+  Edit,
+  Megaphone
 } from "lucide-react";
 import { CitaFormDialog } from "@/components/citas/CitaFormDialog";
 import { CitaEditDialog } from "@/components/citas/CitaEditDialog";
@@ -32,6 +33,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, isSameDay, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { emitLlamadoEvent, type TurnoPaciente } from "@/lib/queueStore";
 
 const getStatusConfig = (status: string) => {
   const configs = {
@@ -130,6 +133,28 @@ const AppointmentsTab = () => {
 
   const handleUpdateStatus = (id: string, estado: string) => {
     updateAppointment.mutate({ id, estado });
+  };
+
+  const handleLlamarAlTv = (appointment: any) => {
+    const docName = getDoctorName(appointment.doctor_id);
+    const doctorObj = getDoctor(appointment.doctor_id);
+    const docIdx = doctores ? doctores.findIndex((d) => d.id === appointment.doctor_id) : 0;
+    const consultorioId = docIdx >= 0 ? String(docIdx + 1) : "1";
+
+    const turno: TurnoPaciente = {
+      id: appointment.id,
+      citaId: appointment.id,
+      nombre: appointment.nombre || "Paciente",
+      doctorNombre: docName || "Médico Especialista",
+      especialidad: doctorObj?.especialidad || "Consulta Médica",
+      consultorio: consultorioId,
+      horaCita: appointment.hora_cita ? appointment.hora_cita.substring(0, 5) : "08:00",
+      estado: "llamado",
+      ticketNumero: "A-01",
+    };
+
+    emitLlamadoEvent(turno);
+    toast.success(`📢 Llamando a ${appointment.nombre} (Consultorio ${consultorioId}) en la Pantalla TV`);
   };
 
   // Filter appointments for selected date
@@ -299,6 +324,19 @@ const AppointmentsTab = () => {
                                   <StatusIcon className="h-3 w-3" />
                                   {statusConfig.label}
                                 </Badge>
+
+                                {appointment.estado !== "cancelada" && appointment.estado !== "atendida" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleLlamarAlTv(appointment)}
+                                    className="gap-1.5 bg-emerald-600/10 hover:bg-emerald-600 hover:text-white text-emerald-600 dark:text-emerald-400 border-emerald-500/40 hover:border-emerald-600 font-bold transition-all shadow-sm h-8 px-2.5"
+                                  >
+                                    <Megaphone className="h-3.5 w-3.5" />
+                                    <span className="hidden xs:inline text-xs">Llamar TV</span>
+                                  </Button>
+                                )}
+
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">

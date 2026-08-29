@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Phone, User, FileText, CalendarClock, Check, X, MoreHorizontal, UserCircle } from "lucide-react";
+import { Calendar, Clock, Phone, User, FileText, CalendarClock, Check, X, MoreHorizontal, UserCircle, Megaphone } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { CitaRescheduleDialog } from "@/components/citas/CitaRescheduleDialog";
+import { emitLlamadoEvent, type TurnoPaciente } from "@/lib/queueStore";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -141,6 +142,28 @@ export const AgendaAdmin = ({ citas }: AgendaAdminProps) => {
     setRescheduleDialogOpen(true);
   };
 
+  const handleLlamarAlTv = (cita: any) => {
+    const docName = getDoctorName(cita.doctor_id);
+    const doctorObj = doctores?.find((d) => d.id === cita.doctor_id);
+    const docIdx = doctores ? doctores.findIndex((d) => d.id === cita.doctor_id) : 0;
+    const consultorioId = docIdx >= 0 ? String(docIdx + 1) : "1";
+
+    const turno: TurnoPaciente = {
+      id: cita.id,
+      citaId: cita.id,
+      nombre: cita.nombre || "Paciente",
+      doctorNombre: docName || "Médico Especialista",
+      especialidad: doctorObj?.especialidad || "Consulta Médica",
+      consultorio: consultorioId,
+      horaCita: cita.hora_cita ? cita.hora_cita.substring(0, 5) : "08:00",
+      estado: "llamado",
+      ticketNumero: "A-01",
+    };
+
+    emitLlamadoEvent(turno);
+    toast.success(`📢 Llamando a ${cita.nombre} (Consultorio ${consultorioId}) en la Pantalla TV`);
+  };
+
   const handleVerExpediente = async (cita: any) => {
     try {
       let clienteId = cita.cliente_id;
@@ -264,6 +287,19 @@ export const AgendaAdmin = ({ citas }: AgendaAdminProps) => {
                     
                     {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* Botón directo del médico/recepción para llamar al TV */}
+                      {cita.estado !== "cancelada" && cita.estado !== "atendida" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleLlamarAlTv(cita)}
+                          className="gap-1.5 bg-emerald-600/10 hover:bg-emerald-600 hover:text-white text-emerald-600 dark:text-emerald-400 border-emerald-500/40 hover:border-emerald-600 font-bold transition-all shadow-sm"
+                        >
+                          <Megaphone className="h-4 w-4" />
+                          <span className="hidden xs:inline">Llamar al TV</span>
+                        </Button>
+                      )}
+
                       {/* Quick Actions for pending */}
                       {cita.estado === "pendiente" && (
                         <Button
