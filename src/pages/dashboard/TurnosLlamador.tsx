@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Tv,
   ExternalLink,
@@ -74,8 +75,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useClinicConfig } from "@/hooks/useClinicConfig";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { MetricsModal } from "@/components/dashboard/MetricsModal";
 import { MediaSettingsModal } from "@/components/dashboard/MediaSettingsModal";
+import { CobroConsultaModal } from "@/components/dashboard/CobroConsultaModal";
 
 // Componente de carrusel de afiches (preview en dashboard)
 const BannerSlideshow = ({ banners, durationSeconds }: { banners: AdBanner[]; durationSeconds: number }) => {
@@ -270,6 +274,7 @@ const ClinicMediaDisplay = ({ mediaSettings }: { mediaSettings: ClinicMediaSetti
 
 export const TurnosLlamador = () => {
   const { data: clinicConfig } = useClinicConfig();
+  const navigate = useNavigate();
 
   // Estados
   const [turnos, setTurnos] = useState<TurnoPaciente[]>([]);
@@ -286,6 +291,27 @@ export const TurnosLlamador = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showMetricsModal, setShowMetricsModal] = useState(false);
+  const [cobroModalOpen, setCobroModalOpen] = useState(false);
+  const [pacienteACobrar, setPacienteACobrar] = useState<{
+    paciente: TurnoPaciente;
+    officeId: string;
+    officeName: string;
+  } | null>(null);
+
+  const handleOpenCobroModal = (officeId: string) => {
+    const finalizado = turnos.find((t) => t.estado === "llamado" && t.consultorio === officeId);
+    const office = offices.find((o) => o.id === officeId);
+    if (finalizado) {
+      setPacienteACobrar({
+        paciente: finalizado,
+        officeId,
+        officeName: office?.name || `Consultorio ${officeId}`,
+      });
+      setCobroModalOpen(true);
+    } else {
+      handleFinishConsultation(officeId);
+    }
+  };
 
   // Formulario nuevo paciente
   const [nuevoNombre, setNuevoNombre] = useState("");
@@ -310,31 +336,110 @@ export const TurnosLlamador = () => {
   const { data: doctoresDb } = useQuery({
     queryKey: ["doctores-llamador-data"],
     queryFn: async () => {
-      const { data } = await supabase.from("doctores").select("id, nombre, especialidad").eq("activo", true);
+      const { data } = await supabase.from("doctores").select("id, nombre, especialidad, consultorio").eq("activo", true);
       return data || [];
     },
   });
 
-  // Consultorios dinámicos basados en los doctores reales registrados
-  const defaultOffices = [
-    { id: "1", name: "Consultorio 1", specialty: "Medicina General", doctor: "Dr. Roberto Chaverri" },
-    { id: "2", name: "Consultorio 2", specialty: "Pediatría", doctor: "Dra. Sofía Huertas" },
-    { id: "3", name: "Consultorio 3", specialty: "Ginecología", doctor: "Dra. Carmen Figueroa" },
-    { id: "4", name: "Consultorio 4", specialty: "Odontología", doctor: "Dr. Andrés Salazar" },
-  ];
-
+  // Consultorios dinámicos basados en los doctores reales registrados en la BD ordenados numéricamente (1, 2, 3...)
   const offices = useMemo(() => {
     if (doctoresDb && doctoresDb.length > 0) {
-      return doctoresDb.map((doc, idx) => ({
-        id: String(idx + 1),
-        name: `Consultorio ${idx + 1}`,
-        specialty: doc.especialidad || "Especialidad Médica",
-        doctor: doc.nombre,
-        doctorId: doc.id,
-      }));
+      const list = doctoresDb.map((doc, idx) => {
+        const rawConsultorio = doc.consultorio?.trim();
+        const officeName = rawConsultorio
+          ? (rawConsultorio.toLowerCase().startsWith("consultorio") || rawConsultorio.toLowerCase().startsWith("sala") || rawConsultorio.toLowerCase().startsWith("cubículo")
+              ? rawConsultorio
+              : `Consultorio ${rawConsultorio}`)
+          : `Consultorio ${idx + 1}`;
+        const officeId = rawConsultorio || String(idx + 1);
+
+        return {
+          id: officeId,
+          name: officeName,
+          specialty: doc.especialidad || "Especialidad Médica",
+          doctor: doc.nombre,
+          doctorId: doc.id,
+        };
+      });
+
+      // Ordenar numéricamente por número de consultorio (Consultorio 1, 2, 3, 4, 5, 6, 7, 8...)
+      return list.sort((a, b) => {
+        const getNum = (str: string) => {
+          const match = str.match(/\d+/);
+          return match ? parseInt(match[0], 10) : 9999;
+        };
+        const numA = getNum(a.name);
+        const numB = getNum(b.name);
+        if (numA !== numB) {
+          return numA - numB;
+        }
+        return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+      });
     }
-    return defaultOffices;
+    return [];
   }, [doctoresDb]);
+
+  const { user, userRole } = useAuth();
+  const { data: userProfile } = useUserProfile();
+
+  const isMedico = 
+    userRole === "medico" || 
+    userRole === "odontologo" || 
+    userRole === "fisioterapeuta" || 
+    userRole === "quiropractico";
+
+  // Identificar el consultorio específico del médico logueado con normalización de acentos y nombres
+  const miDoctorAsignado = useMemo(() => {
+    if (!isMedico || !doctoresDb || doctoresDb.length === 0) return null;
+    
+    const normalize = (str?: string | null) =>
+      (str || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/dr\.|dra\.|lic\.|odontologo|doctor|doctora/g, "")
+        .trim();
+
+    const profileFirst = normalize(userProfile?.nombre);
+    const profileLast = normalize(userProfile?.apellidos);
+    const profileFull = `${profileFirst} ${profileLast}`.trim();
+    const userEmail = (user?.email || "").toLowerCase();
+
+    // 1. Coincidencia por nombre y/o apellido normalizado
+    const matchPorNombre = doctoresDb.find((d) => {
+      const docClean = normalize(d.nombre);
+      if (profileFirst && profileLast) {
+        return docClean.includes(profileFirst) && docClean.includes(profileLast);
+      }
+      if (profileFirst) {
+        return docClean.includes(profileFirst);
+      }
+      return profileFull && (docClean.includes(profileFull) || profileFull.includes(docClean));
+    });
+    if (matchPorNombre) return matchPorNombre;
+
+    // 2. Coincidencia por prefijo de email (ej: juanp -> juan)
+    const emailPrefix = userEmail.split("@")[0];
+    const matchPorEmail = doctoresDb.find((d) => {
+      const docClean = normalize(d.nombre);
+      return emailPrefix.length >= 3 && docClean.includes(emailPrefix.substring(0, 4));
+    });
+    if (matchPorEmail) return matchPorEmail;
+
+    return null;
+  }, [isMedico, doctoresDb, userProfile, user]);
+
+  const miConsultorioId = useMemo(() => {
+    if (!miDoctorAsignado) return null;
+    return miDoctorAsignado.consultorio?.trim() || String(doctoresDb?.findIndex((d) => d.id === miDoctorAsignado.id) + 1 || "1");
+  }, [miDoctorAsignado, doctoresDb]);
+
+  // Si es médico, forzar el filtro a su consultorio automáticamente
+  useEffect(() => {
+    if (isMedico && miConsultorioId) {
+      setSelectedOfficeFilter(miConsultorioId);
+    }
+  }, [isMedico, miConsultorioId]);
 
   // Citas agendadas de hoy desde Supabase
   const { data: citasDb } = useQuery({
@@ -388,6 +493,10 @@ export const TurnosLlamador = () => {
           setTurnos((prev) =>
             prev.map((t) => (t.consultorio === consultorio && t.estado === "llamado" ? { ...t, estado: "atendido" } : t))
           );
+        } else if (payload.type === "CLEAR_QUEUE" || payload.type === "RESET_QUEUE") {
+          setTurnos([]);
+          setUltimoLlamado(null);
+          setHistorialLlamados([]);
         }
       })
       .subscribe();
@@ -427,40 +536,49 @@ export const TurnosLlamador = () => {
   // Cargar y sincronizar citas de Supabase con la cola del llamador
   useEffect(() => {
     const savedData = getTurnosFromStorage();
-    const savedTurnos = savedData.turnos || [];
+    const savedTurnos = (savedData.turnos || []).filter(
+      (t) => !["1", "2", "3", "4", "5", "6", "7"].includes(t.id)
+    );
 
     if (!citasDb || citasDb.length === 0) {
-      if (turnos.length === 0 && savedTurnos.length > 0) {
-        setTurnos(savedTurnos);
-        const atendidosOLlamados = savedTurnos.filter(
-          (t) => t.estado === "llamado" || t.estado === "atendido"
-        );
-        const enAtencion = savedTurnos.find((t) => t.estado === "llamado") || null;
-        setUltimoLlamado(enAtencion || savedData.ultimoLlamado || null);
-        setHistorialLlamados(atendidosOLlamados);
-      }
+      const validManual = savedTurnos.filter((t) => !t.citaId && t.id && t.id.length > 5);
+      setTurnos(validManual);
+      const atendidosOLlamados = validManual.filter(
+        (t) => t.estado === "llamado" || t.estado === "atendido"
+      );
+      const enAtencion = validManual.find((t) => t.estado === "llamado") || null;
+      const cleanLast = savedData.ultimoLlamado && !["1", "2", "3", "4", "5", "6", "7"].includes(savedData.ultimoLlamado.id)
+        ? savedData.ultimoLlamado
+        : null;
+      setUltimoLlamado(enAtencion || cleanLast);
+      setHistorialLlamados(atendidosOLlamados);
+      saveTurnosToStorage({
+        turnos: validManual,
+        ultimoLlamado: enAtencion || cleanLast,
+      });
       return;
     }
 
     const turnosMap = new Map<string, TurnoPaciente>();
 
-    // 1. Cargar las citas de hoy de la base de datos
+    // 1. Cargar las citas de hoy exclusivamente de la base de datos
     citasDb.forEach((cita, index) => {
       const existing = savedTurnos.find((t) => t.id === cita.id || t.citaId === cita.id);
       
       const doc = doctoresDb?.find((d) => d.id === cita.doctor_id);
       const docIdx = doctoresDb ? doctoresDb.findIndex((d) => d.id === cita.doctor_id) : -1;
-      const consId = docIdx >= 0 ? String(docIdx + 1) : (existing?.consultorio || "1");
+      const consId = doc?.consultorio?.trim() || (docIdx >= 0 ? String(docIdx + 1) : (existing?.consultorio || "1"));
 
       const turnoItem: TurnoPaciente = {
         id: cita.id,
         citaId: cita.id,
         nombre: cita.nombre || "Paciente",
-        doctorNombre: doc?.nombre || existing?.doctorNombre || (offices[0]?.doctor || "Médico Especialista"),
+        doctorNombre: doc?.nombre || existing?.doctorNombre || "Médico Especialista",
         especialidad: doc?.especialidad || existing?.especialidad || "Medicina General",
         consultorio: consId,
+        fechaCita: cita.fechaCita ? cita.fechaCita.split("T")[0] : existing?.fechaCita,
         horaCita: cita.hora_cita ? cita.hora_cita.substring(0, 5) : (existing?.horaCita || "08:00"),
-        estado: existing?.estado || (cita.estado === "atendida" ? "atendido" : cita.estado === "llamado" ? "llamado" : "en_espera"),
+        estado: (cita.estado === "atendida" || cita.estado === "finalizada" || cita.estado === "completada") ? "atendido" : existing?.estado || (cita.estado === "llamado" ? "llamado" : "en_espera"),
         timestampLlamada: existing?.timestampLlamada,
         ticketNumero: existing?.ticketNumero || `A-${(index + 1).toString().padStart(2, "0")}`,
         prioridad: existing?.prioridad || null,
@@ -469,25 +587,29 @@ export const TurnosLlamador = () => {
       turnosMap.set(cita.id, turnoItem);
     });
 
-    // 2. Mantener turnos creados manualmente en el llamador
+    // 2. Mantener únicamente turnos manuales válidos registrados en la sesión
     savedTurnos.forEach((t) => {
-      if (!t.citaId && !turnosMap.has(t.id)) {
+      if (!t.citaId && !turnosMap.has(t.id) && !["1", "2", "3", "4", "5", "6", "7"].includes(t.id) && t.id && t.id.length > 5) {
         turnosMap.set(t.id, t);
       }
     });
 
     const mergedList = Array.from(turnosMap.values());
+    const cleanLast = savedData.ultimoLlamado && !["1", "2", "3", "4", "5", "6", "7"].includes(savedData.ultimoLlamado.id)
+      ? savedData.ultimoLlamado
+      : null;
+
     setTurnos(mergedList);
     saveTurnosToStorage({
       turnos: mergedList,
-      ultimoLlamado: savedData.ultimoLlamado,
+      ultimoLlamado: cleanLast,
     });
 
     const atendidosOLlamados = mergedList.filter(
       (t) => t.estado === "llamado" || t.estado === "atendido"
     );
     const enAtencion = mergedList.find((t) => t.estado === "llamado") || null;
-    setUltimoLlamado(enAtencion || savedData.ultimoLlamado || null);
+    setUltimoLlamado(enAtencion || cleanLast);
     setHistorialLlamados(atendidosOLlamados);
   }, [citasDb, doctoresDb, offices]);
 
@@ -685,6 +807,20 @@ export const TurnosLlamador = () => {
       ultimoLlamado: otroLlamado,
     });
 
+    // Si la cita proviene de Supabase, actualizar su estado en la base de datos a "atendida"
+    if (finalizado?.citaId) {
+      supabase
+        .from("citas")
+        .update({ estado: "atendida" })
+        .eq("id", finalizado.citaId)
+        .then(({ error }) => {
+          if (error) console.error("Error actualizando estado de cita:", error);
+          queryClient.invalidateQueries({ queryKey: ["citas-llamador-db"] });
+          queryClient.invalidateQueries({ queryKey: ["today-appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["appointments"] });
+        });
+    }
+
     emitFinalizarEvent(officeId);
     toast.success("Consulta médica finalizada con éxito.");
   };
@@ -780,8 +916,13 @@ export const TurnosLlamador = () => {
     setShowAddForm(false);
   };
 
-  const filteredOffices =
-    selectedOfficeFilter === "all" ? offices : offices.filter((o) => o.id === selectedOfficeFilter);
+  const filteredOffices = useMemo(() => {
+    if (isMedico && miConsultorioId) {
+      const myOffices = offices.filter((o) => o.id === miConsultorioId || o.doctorId === miDoctorAsignado?.id);
+      return myOffices.length > 0 ? myOffices : offices.slice(0, 1);
+    }
+    return selectedOfficeFilter === "all" ? offices : offices.filter((o) => o.id === selectedOfficeFilter);
+  }, [isMedico, miConsultorioId, miDoctorAsignado, selectedOfficeFilter, offices]);
 
   const clinicName = clinicConfig?.nombre_clinica || "NOVA DENTAL";
   return (
@@ -804,66 +945,79 @@ export const TurnosLlamador = () => {
                 ● En Línea
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">
-              Panel Administrativo y de Consultorios Médicos
+            <p className="text-xs text-slate-400">
+              {isMedico 
+                ? `Panel Médico • ${filteredOffices[0]?.name || "Consultorio"} (${miDoctorAsignado?.nombre || "Médico"})`
+                : "Panel Administrativo y de Consultorios Médicos"
+              }
             </p>
           </div>
         </div>
 
-        {/* Lado Derecho: Todos los Botones de Control */}
+        {/* Lado Derecho: Acciones y Botones */}
         <div className="flex flex-wrap items-center gap-2">
-          <a
-            href="/dashboard"
-            className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-slate-700 hover:text-white transition-all shadow-sm"
+          {/* Volver al Dashboard */}
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center justify-center size-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all shadow-md"
+            title="Volver al Dashboard"
           >
-            <ArrowLeft className="size-3.5 text-slate-400" />
-            <span className="hidden sm:inline">Panel</span>
-          </a>
+            <ArrowLeft className="size-4" />
+          </button>
 
+          {/* Métricas rápidas */}
           <button
             onClick={() => setShowMetricsModal(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-slate-700 hover:text-white transition-all shadow-sm"
+            className="flex items-center justify-center size-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all shadow-md"
+            title="Ver Estadísticas del Día"
           >
-            <BarChart3 className="size-3.5 text-indigo-400" />
-            <span className="hidden sm:inline">Métricas del Día</span>
+            <BarChart3 className="size-4" />
           </button>
 
-          <button
-            onClick={() => setShowSettingsModal(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-slate-700 hover:text-white transition-all shadow-sm"
-          >
-            <Settings className="size-3.5 text-sky-400" />
-            <span>Configuración</span>
-          </button>
+          {/* Configuración Multimedia */}
+          {!isMedico && (
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all shadow-md"
+              title="Configuración de Videos, Slideshow y Tono"
+            >
+              <Settings className="size-3.5 text-sky-400" />
+              <span className="hidden sm:inline">Configuración</span>
+            </button>
+          )}
 
-          {/* BOTÓN INDISPENSABLE: OCULTAR/VER TV AQUÍ */}
-          <button
-            onClick={() => setShowSplitView(!showSplitView)}
-            className={`flex items-center gap-1.5 rounded-xl border px-2.5 sm:px-3 py-1.5 text-xs font-bold transition-all shadow-sm ${
-              showSplitView
-                ? "border-sky-500 bg-sky-500/20 text-sky-300"
-                : "border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white"
-            }`}
-          >
-            <LayoutTemplate className="size-3.5" />
-            <span>{showSplitView ? "Ocultar TV Aquí" : "Ver TV Aquí"}</span>
-          </button>
-
+          {/* Botón Abrir TV en Nueva Ventana */}
           <button
             onClick={handleOpenTvWindow}
-            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 px-3 sm:px-3.5 py-1.5 text-xs font-black tracking-wide text-white shadow-md hover:from-sky-500 hover:to-teal-500 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all shadow-md"
+            title="Abrir pantalla para sala de espera en nueva ventana o segundo monitor"
           >
-            <Tv className="size-3.5" />
-            <span className="hidden xs:inline">ABRIR MONITOR TV</span>
-            <ExternalLink className="size-3 opacity-80" />
+            <Tv className="size-3.5 text-sky-400" />
+            <span className="hidden sm:inline">Pantalla TV</span>
+            <ExternalLink className="size-3 text-slate-400" />
           </button>
 
+          {/* Botón Alternar Split View (TV en vivo aquí) */}
+          <button
+            onClick={() => setShowSplitView(!showSplitView)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md ${
+              showSplitView
+                ? "bg-sky-600 text-white shadow-sky-600/30"
+                : "bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white"
+            }`}
+            title="Ver / Ocultar pantalla de TV en vivo en este panel"
+          >
+            <LayoutTemplate className="size-3.5" />
+            <span className="hidden sm:inline">{showSplitView ? "Ocultar TV" : "Ver TV Aquí"}</span>
+          </button>
+
+          {/* Botón Registrar Nuevo Paciente */}
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-3 sm:px-3.5 py-1.5 text-xs font-black text-slate-950 shadow-md hover:brightness-110 active:scale-95 transition-all uppercase tracking-wider"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-emerald-500/20"
           >
             <Plus className="size-3.5" />
-            <span>+ REGISTRAR PACIENTE</span>
+            <span>REGISTRAR PACIENTE</span>
           </button>
         </div>
       </div>
@@ -899,37 +1053,48 @@ export const TurnosLlamador = () => {
         {/* Filtro de consultorios */}
         {activeTab === "offices" && (
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-slate-400 font-semibold flex items-center gap-1">
-              <Stethoscope className="size-3.5 text-sky-400" />
-              <span>Médico / Consultorio:</span>
-            </span>
-            <div className="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-              <button
-                type="button"
-                onClick={() => setSelectedOfficeFilter("all")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                  selectedOfficeFilter === "all"
-                    ? "bg-sky-600 text-white shadow-sm"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Todos (Recepción)
-              </button>
-              {offices.map((off) => (
-                <button
-                  key={off.id}
-                  type="button"
-                  onClick={() => setSelectedOfficeFilter(off.id)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                    selectedOfficeFilter === off.id
-                      ? "bg-emerald-600 text-white shadow-sm"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {off.name} ({off.doctor.split(" ")[0]} {off.doctor.split(" ")[1] || ""})
-                </button>
-              ))}
-            </div>
+            {isMedico ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold shadow-sm">
+                <Stethoscope className="size-3.5 text-emerald-400" />
+                <span>
+                  Su Consultorio: <strong className="text-white">{filteredOffices[0]?.name || `Consultorio ${miConsultorioId}`}</strong> ({miDoctorAsignado?.nombre || "Médico"})
+                </span>
+              </div>
+            ) : (
+              <>
+                <span className="text-slate-400 font-semibold flex items-center gap-1">
+                  <Stethoscope className="size-3.5 text-sky-400" />
+                  <span>Médico / Consultorio:</span>
+                </span>
+                <div className="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOfficeFilter("all")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      selectedOfficeFilter === "all"
+                        ? "bg-sky-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Todos (Recepción)
+                  </button>
+                  {offices.map((off) => (
+                    <button
+                      key={off.id}
+                      type="button"
+                      onClick={() => setSelectedOfficeFilter(off.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                        selectedOfficeFilter === off.id
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      {off.name} ({off.doctor.split(" ")[0]} {off.doctor.split(" ")[1] || ""})
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -1043,7 +1208,7 @@ export const TurnosLlamador = () => {
                               <span>Liberar</span>
                             </button>
                             <button
-                              onClick={() => handleFinishConsultation(office.id)}
+                              onClick={() => handleOpenCobroModal(office.id)}
                               className="flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-white transition-all shadow-md ml-auto"
                             >
                               <Check className="size-3" />
@@ -1063,14 +1228,20 @@ export const TurnosLlamador = () => {
 
                       {/* Botón Gigante de Llamado Verde */}
                       <button
+                        onClick={() => {
+                          if (nextInOffice) {
+                            handleCallSpecificPatient(nextInOffice.id);
+                          } else {
+                            handleCallInOffice(office.id);
+                          }
+                        }}
                         disabled={!nextInOffice}
-                        onClick={() => handleCallInOffice(office.id)}
                         className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 py-3 px-3 text-xs font-black uppercase tracking-wider text-slate-950 shadow-lg shadow-emerald-950/60 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                       >
                         <Megaphone className="size-3.5 text-slate-950" />
                         <span className="truncate">
                           {nextInOffice
-                            ? `LLAMAR A ${nextInOffice.nombre.toUpperCase()} (${nextInOffice.ticketNumero || "A-01"})`
+                            ? `LLAMAR A ${nextInOffice.nombre.toUpperCase()} (${nextInOffice.ticketNumero || "A-01"})${nextInOffice.horaCita ? ` • 🕒 ${nextInOffice.horaCita}` : ""}`
                             : "SIN PACIENTES EN ESPERA"}
                         </span>
                       </button>
@@ -1086,7 +1257,7 @@ export const TurnosLlamador = () => {
                           {officeWaiting.map((p, idx) => (
                             <div
                               key={p.id}
-                              className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/70 px-2.5 py-2 text-xs"
+                              className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/70 px-2.5 py-2 text-xs hover:border-slate-700 transition-colors"
                             >
                               {/* Posición */}
                               <span className="text-[10px] font-black text-slate-500 shrink-0 w-4 text-center">
@@ -1098,10 +1269,26 @@ export const TurnosLlamador = () => {
                                 {p.ticketNumero || `A-0${idx + 1}`}
                               </span>
 
-                              {/* Nombre */}
-                              <span className="font-bold text-slate-200 truncate flex-1 text-[11px]">
-                                {p.nombre}
-                              </span>
+                              {/* Nombre + Fecha y Hora */}
+                              <div className="flex flex-col min-w-0 flex-1">
+                                <span className="font-bold text-slate-200 truncate text-[11px]">
+                                  {p.nombre}
+                                </span>
+                                <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
+                                  {p.fechaCita && (
+                                    <span className="flex items-center gap-0.5 text-slate-400">
+                                      <Calendar className="size-2.5 text-slate-500" />
+                                      {p.fechaCita.substring(8, 10)}/{p.fechaCita.substring(5, 7)}
+                                    </span>
+                                  )}
+                                  {p.horaCita && (
+                                    <span className="flex items-center gap-0.5 text-sky-400 font-bold">
+                                      <Clock className="size-2.5 text-sky-400" />
+                                      {p.horaCita}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
 
                               {/* Badge de Prioridad */}
                               {p.prioridad === "preferencial" && (
@@ -1148,10 +1335,12 @@ export const TurnosLlamador = () => {
           ) : (
             /* FILA GENERAL UNIFICADA */
             <div className="space-y-2.5">
-              <h2 className="text-base font-black text-white uppercase">Fila General de Pacientes</h2>
+              <h2 className="text-base font-black text-white uppercase">
+                {isMedico ? `Fila de Pacientes • ${filteredOffices[0]?.name || "Mi Consultorio"}` : "Fila General de Pacientes"}
+              </h2>
               <div className="space-y-2">
                 {turnos
-                  .filter((t) => t.estado === "en_espera")
+                  .filter((t) => t.estado === "en_espera" && (!isMedico || !miConsultorioId || t.consultorio === miConsultorioId || t.doctorNombre === miDoctorAsignado?.nombre))
                   .map((p, idx) => (
                     <div
                       key={p.id}
@@ -1163,7 +1352,21 @@ export const TurnosLlamador = () => {
                         </span>
                         <div>
                           <h4 className="text-xs font-bold text-white">{p.nombre}</h4>
-                          <p className="text-[10px] text-slate-400">{p.doctorNombre} • Consultorio {p.consultorio}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                            <span>{p.doctorNombre} • Consultorio {p.consultorio}</span>
+                            {p.fechaCita && (
+                              <span className="flex items-center gap-0.5 text-slate-400">
+                                <Calendar className="size-2.5 text-slate-500" />
+                                {p.fechaCita.substring(8, 10)}/{p.fechaCita.substring(5, 7)}
+                              </span>
+                            )}
+                            {p.horaCita && (
+                              <span className="flex items-center gap-0.5 text-sky-400 font-bold">
+                                <Clock className="size-2.5 text-sky-400" />
+                                {p.horaCita}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -1536,6 +1739,20 @@ export const TurnosLlamador = () => {
           onClose={() => setShowSettingsModal(false)}
         />
       )}
+
+      {/* MODAL DE COBRO RÁPIDO Y CIERRE DE CONSULTA */}
+      <CobroConsultaModal
+        open={cobroModalOpen}
+        onOpenChange={setCobroModalOpen}
+        paciente={pacienteACobrar?.paciente || null}
+        officeName={pacienteACobrar?.officeName}
+        onFinalizarSuccess={() => {
+          if (pacienteACobrar) {
+            handleFinishConsultation(pacienteACobrar.officeId);
+            setPacienteACobrar(null);
+          }
+        }}
+      />
 
     </div>
   );

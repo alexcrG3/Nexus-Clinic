@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConsultaEditDialog } from "@/components/consultas/ConsultaEditDialog";
 import { ConsultaFormDialog } from "@/components/consultas/ConsultaFormDialog";
 import { ConsultaProfesional } from "@/components/consultas/ConsultaProfesional";
+import { RecetaActions } from "@/components/consultas/RecetaActions";
 import { useUpdateConsulta } from "@/hooks/useConsultas";
 import { OdontogramaProfesional } from "@/components/odontologia/OdontogramaProfesional";
 import { TratamientoDentalList } from "@/components/odontologia/TratamientoDentalList";
@@ -444,6 +445,33 @@ const ExpedienteDetalle = () => {
                             <div>
                               <p className="text-sm font-medium text-muted-foreground">Plan de Tratamiento</p>
                               <p className="text-base">{consulta.plan_tratamiento}</p>
+                            </div>
+                          )}
+
+                          {Array.isArray(consulta.medicamentos) && consulta.medicamentos.length > 0 && (
+                            <div className="pt-2 border-t border-border mt-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  Medicamentos Prescritos ({consulta.medicamentos.length})
+                                </p>
+                                <RecetaActions
+                                  medicamentos={consulta.medicamentos}
+                                  pacienteNombre={cliente?.nombre ? `${cliente.nombre} ${cliente.apellidos || ""}`.trim() : "Paciente"}
+                                  pacienteTelefono={cliente?.telefono}
+                                  pacienteEmail={cliente?.email}
+                                  profesionalNombre={expediente.profesional ? `${expediente.profesional.nombre || ""} ${expediente.profesional.apellidos || ""}`.trim() : "Dr. Tratante"}
+                                  diagnostico={consulta.diagnostico_principal}
+                                  fecha={format(new Date(consulta.fecha), "d 'de' MMMM, yyyy", { locale: es })}
+                                />
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {consulta.medicamentos.map((med: any, i: number) => (
+                                  <div key={i} className="p-2 rounded-lg bg-background border border-border text-xs">
+                                    <span className="font-bold text-foreground block">{i + 1}. {med.nombre}</span>
+                                    <span className="text-muted-foreground block text-[11px]">{med.indicaciones || med.dosis || "Sin indicaciones"}</span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
                         </div>

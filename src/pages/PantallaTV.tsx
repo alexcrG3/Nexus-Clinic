@@ -312,10 +312,16 @@ export const PantallaTV = () => {
           playChime(mediaSettings.chimeTone);
         }
         await new Promise((r) => setTimeout(r, 500));
+        const speechConsultorio = nextPatient.consultorio
+          ? (nextPatient.consultorio.toLowerCase().startsWith("consultorio") || nextPatient.consultorio.toLowerCase().startsWith("sala") || nextPatient.consultorio.toLowerCase().startsWith("cubículo")
+              ? nextPatient.consultorio
+              : `Consultorio ${nextPatient.consultorio}`)
+          : undefined;
+
         await speakPatientCallAsync(
           nextPatient.nombre,
           nextPatient.doctorNombre,
-          nextPatient.consultorio ? `Consultorio ${nextPatient.consultorio}` : undefined,
+          speechConsultorio,
           nextPatient.ticketNumero,
           "full",
           mediaSettings.selectedVoiceURI,
@@ -518,7 +524,11 @@ export const PantallaTV = () => {
                     </span>
                   )}
                   <span className="rounded-xl bg-black/40 px-3.5 py-1 text-sm font-black text-emerald-200 border border-emerald-400/40">
-                    {activeSpeakingPatient.consultorio ? `Consultorio ${activeSpeakingPatient.consultorio}` : "Consultorio"}
+                    {activeSpeakingPatient.consultorio
+                      ? (activeSpeakingPatient.consultorio.toLowerCase().startsWith("consultorio") || activeSpeakingPatient.consultorio.toLowerCase().startsWith("sala") || activeSpeakingPatient.consultorio.toLowerCase().startsWith("cubículo")
+                          ? activeSpeakingPatient.consultorio
+                          : `Consultorio ${activeSpeakingPatient.consultorio}`)
+                      : "Consultorio"}
                   </span>
                 </div>
 
@@ -599,7 +609,13 @@ export const PantallaTV = () => {
                         </span>
                       </div>
                       <span className="text-emerald-400 shrink-0 text-xs sm:text-sm font-bold bg-emerald-950/60 border border-emerald-500/30 px-3 py-1 rounded-xl">
-                        {p.estado === "atendido" ? "✓ Atendido" : `Cons. ${p.consultorio}`}
+                        {p.estado === "atendido"
+                          ? "✓ Atendido"
+                          : p.consultorio
+                          ? (p.consultorio.toLowerCase().startsWith("consultorio") || p.consultorio.toLowerCase().startsWith("sala")
+                              ? p.consultorio
+                              : `Cons. ${p.consultorio}`)
+                          : "Cons."}
                       </span>
                     </div>
                   ))

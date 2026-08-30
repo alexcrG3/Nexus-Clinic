@@ -380,37 +380,6 @@ const Auth = () => {
                 </button>
               </div>
 
-              {/* Accesos Rápidos de Prueba */}
-              <div className="pt-2 border-t border-slate-100 text-left">
-                <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
-                  ⚡ Cuentas de Prueba:
-                </span>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail("admin@medicr.com");
-                      setPassword("admin123");
-                      setIsLogin(true);
-                    }}
-                    className="py-1 px-2 rounded-lg border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary text-left text-[10px] sm:text-[11px] font-bold transition-all truncate"
-                  >
-                    👑 SuperAdmin
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail("doctor@medicr.com");
-                      setPassword("doctor123");
-                      setIsLogin(true);
-                    }}
-                    className="py-1 px-2 rounded-lg border border-primary/20 bg-slate-50 hover:bg-slate-100 text-slate-800 text-left text-[10px] sm:text-[11px] font-semibold transition-all truncate"
-                  >
-                    👨‍⚕️ Doctor
-                  </button>
-                </div>
-              </div>
-
             </form>
           </CardContent>
         </Card>

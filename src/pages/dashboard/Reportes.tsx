@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { createExcelWorkbook } from "@/lib/excel-utils";
 
-type RangoTipo = "semana" | "quincena" | "mes" | "personalizado";
+type RangoTipo = "hoy" | "semana" | "quincena" | "mes" | "personalizado";
 
 const Reportes = () => {
   const [rangoTipo, setRangoTipo] = useState<RangoTipo>("mes");
@@ -29,6 +29,10 @@ const Reportes = () => {
     const hoy = new Date();
     
     switch (tipo) {
+      case "hoy":
+        setFechaInicio(hoy);
+        setFechaFin(hoy);
+        break;
       case "semana":
         setFechaInicio(startOfWeek(hoy, { weekStartsOn: 1 }));
         setFechaFin(endOfWeek(hoy, { weekStartsOn: 1 }));
@@ -98,7 +102,7 @@ const Reportes = () => {
         .from('citas')
         .select('*')
         .gte('fechaCita', rangoStart)
-        .lte('fechaCita', rangoEnd);
+        .lte('fechaCita', rangoEnd + 'T23:59:59');
       
       if (error) throw error;
       return data || [];
@@ -150,19 +154,23 @@ const Reportes = () => {
     : 0;
 
   // Appointment stats
-  const citasCompletadas = citas?.filter(c => c.estado === 'completada' || c.estado === 'atendida').length || 0;
+  const citasAtendidas = citas?.filter(c => c.estado === 'atendida' || c.estado === 'completada' || c.estado === 'finalizada' || c.estado === 'atendido').length || 0;
+  const citasCompletadas = citasAtendidas;
+  const citasConfirmadas = citas?.filter(c => c.estado === 'confirmada' || c.estado === 'en_espera' || c.estado === 'llamado').length || 0;
+  const citasPendientes = citas?.filter(c => c.estado === 'pendiente').length || 0;
   const citasCanceladas = citas?.filter(c => c.estado === 'cancelada').length || 0;
-  const citasPendientes = citas?.filter(c => c.estado === 'pendiente' || c.estado === 'confirmada').length || 0;
-  const tasaConversion = citas?.length ? (citasCompletadas / citas.length * 100) : 0;
+  const totalCitas = citas?.length || 0;
+  const tasaConversion = totalCitas > 0 ? (citasAtendidas / totalCitas * 100) : 0;
 
   // Average revenue per patient
   const ingresoPorPaciente = pacientes?.length ? (ingresosBrutos / pacientes.length) : 0;
 
   // Data for charts
   const citasData = [
-    { name: 'Completadas', value: citasCompletadas, fill: 'hsl(var(--chart-1))' },
-    { name: 'Canceladas', value: citasCanceladas, fill: 'hsl(var(--chart-2))' },
-    { name: 'Pendientes', value: citasPendientes, fill: 'hsl(var(--chart-3))' },
+    { name: 'Atendidas', value: citasAtendidas, fill: '#10b981' },
+    { name: 'Confirmadas (En sala)', value: citasConfirmadas, fill: '#0ea5e9' },
+    { name: 'Pendientes', value: citasPendientes, fill: '#f59e0b' },
+    { name: 'Canceladas', value: citasCanceladas, fill: '#ef4444' },
   ].filter(item => item.value > 0);
 
   // Daily revenue data
@@ -321,6 +329,7 @@ const Reportes = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="hoy">Hoy</SelectItem>
                     <SelectItem value="semana">Esta Semana</SelectItem>
                     <SelectItem value="quincena">Últimos 15 días</SelectItem>
                     <SelectItem value="mes">Este Mes</SelectItem>

@@ -36,6 +36,7 @@ import {
 import { format, addDays, isSameDay, isWeekend } from "date-fns";
 import { es } from "date-fns/locale";
 import { useCreateAppointment, useAppointments } from "@/hooks/useAppointments";
+import { usePatients } from "@/hooks/usePatients";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -43,9 +44,11 @@ import { toast } from "sonner";
 interface CitaFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialPatientId?: string;
+  initialDoctorId?: string;
 }
 
-export const CitaFormDialog = ({ open, onOpenChange }: CitaFormDialogProps) => {
+export const CitaFormDialog = ({ open, onOpenChange, initialPatientId, initialDoctorId }: CitaFormDialogProps) => {
   const queryClient = useQueryClient();
 
   // Modo Paciente: 'registrado' o 'nuevo'
@@ -63,11 +66,12 @@ export const CitaFormDialog = ({ open, onOpenChange }: CitaFormDialogProps) => {
   const [notas, setNotas] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedHora, setSelectedHora] = useState<string>("");
-  const [doctorId, setDoctorId] = useState<string | undefined>();
+  const [doctorId, setDoctorId] = useState<string | undefined>(initialDoctorId);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const createAppointment = useCreateAppointment();
   const { data: appointments } = useAppointments();
+  const { data: patientsData } = usePatients();
 
   // Pacientes registrados
   const { data: clientes } = useQuery({
@@ -88,7 +92,7 @@ export const CitaFormDialog = ({ open, onOpenChange }: CitaFormDialogProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("doctores")
-        .select("id, nombre, especialidad, activo")
+        .select("id, nombre, especialidad, activo, consultorio")
         .eq("activo", true)
         .order("nombre");
       if (error) throw error;
@@ -96,12 +100,19 @@ export const CitaFormDialog = ({ open, onOpenChange }: CitaFormDialogProps) => {
     },
   });
 
-  // Default doctor
+  // Default doctor si no hay ninguno seleccionado
   useEffect(() => {
     if (doctores && doctores.length > 0 && !doctorId) {
       setDoctorId(doctores[0].id);
     }
   }, [doctores, doctorId]);
+
+  // Si se abre con un paciente preseleccionado
+  useEffect(() => {
+    if (open && initialPatientId) {
+      handleSelectExistingClient(initialPatientId);
+    }
+  }, [open, initialPatientId]);
 
   // Lista de los próximos 14 días
   const nextDays = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i));
@@ -112,12 +123,35 @@ export const CitaFormDialog = ({ open, onOpenChange }: CitaFormDialogProps) => {
     "13:00", "13:45", "14:30", "15:15", "16:00", "16:45"
   ];
 
-  // Helper para saber qué horas están ocupadas en una fecha dada
-  const getOccupiedHoursForDate = (date: Date, filterDoctor?: string) => {
-    if (!appointments) return new Set<string>();
+  // Helper para validar si un horario ya pasó en el tiempo
+  const isPastSlot = (date: Date, slotTime: string) => {
+    const now = new Date();
     const dateStr = format(date, "yyyy-MM-dd");
+    const todayStr = format(now, "yyyy-MM-dd");
+    
+    // Si la fecha seleccionada es un día anterior a hoy
+    if (dateStr < todayStr) return true;
+    
+    // Si es hoy, verificar si la hora ya pasó
+    if (dateStr === todayStr) {
+      const [slotHours, slotMinutes] = slotTime.split(":").map(Number);
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      
+      if (slotHours < currentHours) return true;
+      if (slotHours === currentHours && slotMinutes <= currentMinutes) return true;
+    }
+    
+    return false;
+  };
 
-    return new Set(
+  // Helper para saber qué horas están ocupadas o vencidas en una fecha dada
+  const getOccupiedHoursForDate = (date: Date, filterDoctor?: string) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    const occupied = new Set<string>();
+
+    // 1. Citas ya agendadas en la base de datos
+    if (appointments) {
       appointments
         .filter((apt) => {
           if (!apt.fechaCita || apt.estado === "cancelada") return false;
@@ -126,8 +160,19 @@ export const CitaFormDialog = ({ open, onOpenChange }: CitaFormDialogProps) => {
           const matchesDoc = filterDoctor ? apt.doctor_id === filterDoctor : true;
           return matchesDate && matchesDoc;
         })
-        .map((apt) => (apt.hora_cita ? apt.hora_cita.substring(0, 5) : ""))
-    );
+        .forEach((apt) => {
+          if (apt.hora_cita) occupied.add(apt.hora_cita.substring(0, 5));
+        });
+    }
+
+    // 2. Horarios pasados / vencidos en el reloj actual
+    allTimeSlots.forEach((slot) => {
+      if (isPastSlot(date, slot)) {
+        occupied.add(slot);
+      }
+    });
+
+    return occupied;
   };
 
   const occupiedToday = getOccupiedHoursForDate(selectedDate, doctorId);
@@ -139,15 +184,52 @@ export const CitaFormDialog = ({ open, onOpenChange }: CitaFormDialogProps) => {
     return allTimeSlots.filter((slot) => !occupied.has(slot)).length;
   };
 
-  const handleSelectExistingClient = (value: string) => {
+  const handleSelectExistingClient = async (value: string) => {
     setClienteId(value);
-    const cliente = clientes?.find((c) => c.id === value);
+    const cliente = patientsData?.find((c: any) => c.id === value) || clientes?.find((c) => c.id === value);
     if (cliente) {
       setNombre(cliente.nombre || "");
       setApellidos(cliente.apellidos || "");
       setTelefono(cliente.telefono || "");
       setEmail(cliente.email || "");
       setCedula(cliente.cedula || "");
+
+      // 1. Auto-seleccionar el último médico que atendió al paciente
+      if (cliente.ultimoDoctor) {
+        const matchingDoc = doctores?.find(
+          (d) =>
+            d.id === cliente.ultimoDoctor.id ||
+            d.nombre?.toLowerCase().trim() === cliente.ultimoDoctor.nombre?.toLowerCase().trim() ||
+            d.nombre?.toLowerCase().includes(cliente.ultimoDoctor.nombre?.toLowerCase().trim()) ||
+            cliente.ultimoDoctor.nombre?.toLowerCase().includes(d.nombre?.toLowerCase().trim())
+        );
+        if (matchingDoc) {
+          setDoctorId(matchingDoc.id);
+          toast.info(`Médico preseleccionado: ${matchingDoc.nombre} (Última atención)`);
+          return;
+        }
+      }
+
+      // 2. Fallback: buscar la cita más reciente de este paciente en la base de datos
+      try {
+        const { data: lastCita } = await supabase
+          .from("citas")
+          .select("doctor_id")
+          .eq("cliente_id", value)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (lastCita?.doctor_id) {
+          const matchingDoc = doctores?.find((d) => d.id === lastCita.doctor_id);
+          if (matchingDoc) {
+            setDoctorId(matchingDoc.id);
+            toast.info(`Médico preseleccionado: ${matchingDoc.nombre} (Última atención)`);
+          }
+        }
+      } catch (err) {
+        console.warn("Error obteniendo último doctor:", err);
+      }
     }
   };
 
@@ -166,6 +248,11 @@ export const CitaFormDialog = ({ open, onOpenChange }: CitaFormDialogProps) => {
 
     if (!selectedHora) {
       toast.error("Por favor selecciona un horario disponible.");
+      return;
+    }
+
+    if (isPastSlot(selectedDate, selectedHora)) {
+      toast.error("No es posible agendar una cita en una fecha u hora que ya ha pasado.");
       return;
     }
 
@@ -344,19 +431,31 @@ export const CitaFormDialog = ({ open, onOpenChange }: CitaFormDialogProps) => {
                 </div>
 
                 {clienteId && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
-                    <div>
-                      <span className="text-[10px] font-bold text-muted-foreground block">NOMBRE:</span>
-                      <span className="font-extrabold text-slate-900 dark:text-white">{nombre} {apellidos}</span>
+                  <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <div>
+                        <span className="text-[10px] font-bold text-muted-foreground block">NOMBRE:</span>
+                        <span className="font-extrabold text-slate-900 dark:text-white">{nombre} {apellidos}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-muted-foreground block">TELÉFONO:</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">{telefono || "Sin teléfono"}</span>
+                      </div>
+                      {email && (
+                        <div className="col-span-2 sm:col-span-1">
+                          <span className="text-[10px] font-bold text-muted-foreground block">EMAIL:</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300 truncate block">{email}</span>
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-muted-foreground block">TELÉFONO:</span>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">{telefono || "Sin teléfono"}</span>
-                    </div>
-                    {email && (
-                      <div className="col-span-2 sm:col-span-1">
-                        <span className="text-[10px] font-bold text-muted-foreground block">EMAIL:</span>
-                        <span className="font-semibold text-slate-700 dark:text-slate-300 truncate block">{email}</span>
+
+                    {doctorId && (
+                      <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-700/60 text-[11px] text-sky-700 dark:text-sky-300 font-medium">
+                        <Stethoscope className="size-3.5 text-sky-500" />
+                        <span>Médico asignado / última atención:</span>
+                        <Badge variant="outline" className="bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 text-[10px] font-bold">
+                          {doctores?.find(d => d.id === doctorId)?.nombre || "Asignado"}
+                        </Badge>
                       </div>
                     )}
                   </div>

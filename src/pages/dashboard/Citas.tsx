@@ -15,7 +15,8 @@ import {
   AlertCircle,
   CalendarDays,
   Stethoscope,
-  Edit
+  Edit,
+  MessageCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,6 +34,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { sendWhatsAppCita } from "@/lib/whatsappUtils";
 
 const getStatusConfig = (status: string) => {
   const configs = {
@@ -88,6 +91,34 @@ const Citas = () => {
 
   const handleUpdateStatus = (id: string, estado: string) => {
     updateAppointment.mutate({ id, estado });
+  };
+
+  const handleSendWhatsApp = (appointment: any, tipo: "recordatorio" | "confirmacion") => {
+    if (!appointment.telefono) {
+      toast.error("Este paciente no tiene número de teléfono registrado.");
+      return;
+    }
+    const fechaFormatted = appointment.fechaCita 
+      ? format(new Date(appointment.fechaCita), "EEEE d 'de' MMMM", { locale: es })
+      : "Fecha programada";
+    const horaFormatted = appointment.hora_cita ? appointment.hora_cita.substring(0, 5) : "";
+    const doctorNom = getDoctorName(appointment.doctor_id);
+
+    const sent = sendWhatsAppCita({
+      pacienteNombre: appointment.nombre || "Paciente",
+      pacienteTelefono: appointment.telefono,
+      fechaCita: fechaFormatted,
+      horaCita: horaFormatted,
+      doctorNombre: doctorNom,
+      clinicaNombre: "Nexus Clinic",
+      tipoMensaje: tipo,
+    });
+
+    if (sent) {
+      toast.success(`Abriendo WhatsApp para ${appointment.nombre}...`);
+    } else {
+      toast.error("El número de teléfono no es válido.");
+    }
   };
 
   // Filter appointments for today only
@@ -259,6 +290,20 @@ const Citas = () => {
                                   <StatusIcon className="h-3 w-3" />
                                   {statusConfig.label}
                                 </Badge>
+
+                                {appointment.telefono && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleSendWhatsApp(appointment, appointment.estado === "confirmada" ? "recordatorio" : "confirmacion")}
+                                    className="gap-1.5 h-8 bg-emerald-500/10 hover:bg-emerald-600 hover:text-white text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs font-bold transition-all"
+                                    title="Enviar recordatorio por WhatsApp"
+                                  >
+                                    <MessageCircle className="h-3.5 w-3.5" />
+                                    <span className="hidden sm:inline">WhatsApp</span>
+                                  </Button>
+                                )}
+
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -266,6 +311,19 @@ const Citas = () => {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
+                                    {appointment.telefono && (
+                                      <>
+                                        <DropdownMenuItem onClick={() => handleSendWhatsApp(appointment, "recordatorio")} className="text-emerald-600 font-medium">
+                                          <MessageCircle className="h-4 w-4 mr-2" />
+                                          Recordatorio (WhatsApp)
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleSendWhatsApp(appointment, "confirmacion")} className="text-emerald-600 font-medium">
+                                          <MessageCircle className="h-4 w-4 mr-2" />
+                                          Confirmación (WhatsApp)
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                      </>
+                                    )}
                                     <DropdownMenuItem onClick={() => setEditingCita(appointment)}>
                                       <Edit className="h-4 w-4 mr-2" />
                                       Editar cita

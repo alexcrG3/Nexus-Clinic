@@ -483,6 +483,7 @@ export type Database = {
         Row: {
           activo: boolean | null
           calendar_id: string | null
+          consultorio: string | null
           created_at: string | null
           dias_trabajo: string[] | null
           email: string | null
@@ -497,6 +498,7 @@ export type Database = {
         Insert: {
           activo?: boolean | null
           calendar_id?: string | null
+          consultorio?: string | null
           created_at?: string | null
           dias_trabajo?: string[] | null
           email?: string | null
@@ -511,6 +513,7 @@ export type Database = {
         Update: {
           activo?: boolean | null
           calendar_id?: string | null
+          consultorio?: string | null
           created_at?: string | null
           dias_trabajo?: string[] | null
           email?: string | null

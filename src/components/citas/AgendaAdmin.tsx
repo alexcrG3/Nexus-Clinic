@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Phone, User, FileText, CalendarClock, Check, X, MoreHorizontal, UserCircle, Megaphone } from "lucide-react";
+import { Calendar, Clock, Phone, User, FileText, CalendarClock, Check, X, MoreHorizontal, UserCircle, Megaphone, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { CitaRescheduleDialog } from "@/components/citas/CitaRescheduleDialog";
 import { emitLlamadoEvent, type TurnoPaciente } from "@/lib/queueStore";
+import { sendWhatsAppCita } from "@/lib/whatsappUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -103,8 +104,26 @@ export const AgendaAdmin = ({ citas }: AgendaAdminProps) => {
       toast.success("Cita confirmada");
       queryClient.invalidateQueries({ queryKey: ["today-appointments"] });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["citas-llamador-db"] });
     } catch (error: any) {
       toast.error("Error al confirmar: " + error.message);
+    }
+  };
+
+  const handleMarcarAtendida = async (citaId: string) => {
+    try {
+      const { error } = await supabase
+        .from("citas")
+        .update({ estado: "atendida" })
+        .eq("id", citaId);
+
+      if (error) throw error;
+      toast.success("Cita marcada como atendida exitosamente");
+      queryClient.invalidateQueries({ queryKey: ["today-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["citas-llamador-db"] });
+    } catch (error: any) {
+      toast.error("Error al finalizar cita: " + error.message);
     }
   };
 
@@ -232,6 +251,34 @@ export const AgendaAdmin = ({ citas }: AgendaAdminProps) => {
     }
   };
 
+  const handleSendWhatsApp = (cita: any, tipo: "recordatorio" | "confirmacion") => {
+    if (!cita.telefono) {
+      toast.error("Este paciente no tiene número de teléfono registrado.");
+      return;
+    }
+    const fechaFormatted = cita.fechaCita 
+      ? format(new Date(cita.fechaCita), "EEEE d 'de' MMMM", { locale: es })
+      : "Fecha programada";
+    const horaFormatted = cita.hora_cita ? cita.hora_cita.substring(0, 5) : "";
+    const doctorNom = getDoctorName(cita.doctor_id);
+
+    const sent = sendWhatsAppCita({
+      pacienteNombre: cita.nombre || "Paciente",
+      pacienteTelefono: cita.telefono,
+      fechaCita: fechaFormatted,
+      horaCita: horaFormatted,
+      doctorNombre: doctorNom,
+      clinicaNombre: "Nexus Clinic",
+      tipoMensaje: tipo,
+    });
+
+    if (sent) {
+      toast.success(`Abriendo WhatsApp para ${cita.nombre}...`);
+    } else {
+      toast.error("El número de teléfono no es válido.");
+    }
+  };
+
   return (
     <>
       <div className="space-y-4">
@@ -287,13 +334,27 @@ export const AgendaAdmin = ({ citas }: AgendaAdminProps) => {
                     
                     {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* Botón directo de WhatsApp para confirmación/recordatorio */}
+                      {cita.telefono && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSendWhatsApp(cita, cita.estado === "confirmada" ? "recordatorio" : "confirmacion")}
+                          className="gap-1.5 bg-emerald-500/10 hover:bg-emerald-600 hover:text-white text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-bold transition-all shadow-sm"
+                          title="Enviar recordatorio por WhatsApp"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          <span className="hidden sm:inline">WhatsApp</span>
+                        </Button>
+                      )}
+
                       {/* Botón directo del médico/recepción para llamar al TV */}
                       {cita.estado !== "cancelada" && cita.estado !== "atendida" && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleLlamarAlTv(cita)}
-                          className="gap-1.5 bg-emerald-600/10 hover:bg-emerald-600 hover:text-white text-emerald-600 dark:text-emerald-400 border-emerald-500/40 hover:border-emerald-600 font-bold transition-all shadow-sm"
+                          className="gap-1.5 bg-sky-600/10 hover:bg-sky-600 hover:text-white text-sky-600 dark:text-sky-400 border-sky-500/40 hover:border-sky-600 font-bold transition-all shadow-sm"
                         >
                           <Megaphone className="h-4 w-4" />
                           <span className="hidden xs:inline">Llamar al TV</span>
@@ -310,6 +371,19 @@ export const AgendaAdmin = ({ citas }: AgendaAdminProps) => {
                         >
                           <Check className="h-4 w-4" />
                           Confirmar
+                        </Button>
+                      )}
+
+                      {/* Quick Action para marcar como Atendida */}
+                      {cita.estado === "confirmada" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleMarcarAtendida(cita.id)}
+                          className="gap-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300 font-bold"
+                        >
+                          <Check className="h-4 w-4" />
+                          <span className="hidden sm:inline">Finalizar</span>
                         </Button>
                       )}
                       
@@ -330,8 +404,25 @@ export const AgendaAdmin = ({ citas }: AgendaAdminProps) => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {cita.telefono && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleSendWhatsApp(cita, "recordatorio")} className="text-emerald-600 font-medium">
+                                <MessageCircle className="h-4 w-4 mr-2" />
+                                Recordatorio (WhatsApp)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleSendWhatsApp(cita, "confirmacion")} className="text-emerald-600 font-medium">
+                                <MessageCircle className="h-4 w-4 mr-2" />
+                                Confirmación (WhatsApp)
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
                           {cita.estado !== "atendida" && cita.estado !== "cancelada" && (
                             <>
+                              <DropdownMenuItem onClick={() => handleMarcarAtendida(cita.id)} className="text-emerald-600 font-bold">
+                                <Check className="h-4 w-4 mr-2" />
+                                Marcar como Atendida
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleOpenReschedule(cita)}>
                                 <CalendarClock className="h-4 w-4 mr-2" />
                                 Reprogramar

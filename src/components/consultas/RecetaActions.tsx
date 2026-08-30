@@ -20,6 +20,7 @@ import { Printer, MoreVertical, Mail, MessageCircle, Loader2 } from "lucide-reac
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { escapeHtml } from "@/lib/sanitize";
+import { useClinicConfig } from "@/hooks/useClinicConfig";
 
 interface Medicamento {
   nombre: string;
@@ -44,18 +45,20 @@ const generarHTMLReceta = (
   pacienteNombre: string,
   profesionalNombre: string,
   diagnostico: string,
-  fecha: string
+  fecha: string,
+  clinicName: string = "Nexus Clinic",
+  logoUrl?: string
 ) => {
   const medicamentosHTML = medicamentos
     .map(
       (med, idx) => `
       <tr>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${idx + 1}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">${escapeHtml(med.nombre)}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(med.dosis || "-")}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(med.frecuencia || "-")}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(med.duracion || "-")}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(med.indicaciones || "-")}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; text-align: center; font-weight: 700; color: #64748b;">${idx + 1}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-weight: 700; color: #0f172a;">${escapeHtml(med.nombre)}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #334155;">${escapeHtml(med.dosis || "-")}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #334155;">${escapeHtml(med.frecuencia || "-")}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #334155;">${escapeHtml(med.duracion || "-")}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #475569; font-size: 13px;">${escapeHtml(med.indicaciones || "-")}</td>
       </tr>
     `
     )
@@ -63,57 +66,104 @@ const generarHTMLReceta = (
 
   return `
     <!DOCTYPE html>
-    <html>
+    <html lang="es">
     <head>
       <meta charset="UTF-8">
-      <title>Receta Médica</title>
+      <title>Receta Médica - ${escapeHtml(pacienteNombre)}</title>
       <style>
         @media print {
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-print { display: none !important; }
         }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; color: #1f2937; }
-        .header { text-align: center; padding-bottom: 20px; border-bottom: 2px solid #7c3aed; margin-bottom: 20px; }
-        .header h1 { color: #7c3aed; margin: 0; font-size: 24px; }
-        .header p { color: #6b7280; margin: 5px 0 0 0; }
-        .info-section { display: flex; justify-content: space-between; margin-bottom: 20px; padding: 15px; background: #f9fafb; border-radius: 8px; }
-        .info-group { }
-        .info-group label { font-size: 12px; color: #6b7280; display: block; }
-        .info-group span { font-weight: 600; font-size: 14px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { background: #7c3aed; color: white; padding: 12px; text-align: left; font-weight: 600; }
-        .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
-        .signature { margin-top: 60px; text-align: center; }
-        .signature-line { border-top: 1px solid #1f2937; width: 200px; margin: 0 auto 10px; }
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+          margin: 0; 
+          padding: 30px 40px; 
+          color: #0f172a; 
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        .header { 
+          display: flex; 
+          align-items: center; 
+          justify-content: space-between; 
+          padding-bottom: 16px; 
+          border-bottom: 3px solid #0284c7; 
+          margin-bottom: 24px; 
+        }
+        .clinic-brand { display: flex; align-items: center; gap: 14px; }
+        .clinic-logo { width: 52px; height: 52px; object-fit: contain; }
+        .clinic-info h1 { margin: 0; font-size: 22px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px; }
+        .clinic-info p { margin: 2px 0 0 0; font-size: 12px; color: #64748b; font-weight: 600; }
+        .rx-badge { background: #0284c7; color: white; padding: 6px 14px; border-radius: 12px; font-weight: 800; font-size: 18px; letter-spacing: 1px; }
+        
+        .patient-card { 
+          display: grid; 
+          grid-template-columns: 2fr 1fr; 
+          gap: 12px; 
+          background: #f8fafc; 
+          border: 1px solid #e2e8f0; 
+          padding: 14px 18px; 
+          border-radius: 12px; 
+          margin-bottom: 24px; 
+        }
+        .data-field label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 2px; }
+        .data-field span { font-size: 14px; font-weight: 700; color: #0f172a; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+        th { background: #0284c7; color: white; padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+        
+        .instructions { margin-top: 24px; padding: 14px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; font-size: 13px; color: #166534; }
+        .instructions strong { display: block; margin-bottom: 4px; font-size: 12px; text-transform: uppercase; }
+        
+        .footer-signatures { 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: flex-end; 
+          margin-top: 60px; 
+          padding-top: 20px; 
+          border-top: 1px dashed #cbd5e1; 
+        }
+        .qr-placeholder { font-size: 10px; color: #94a3b8; text-align: left; }
+        .doctor-signature { text-align: center; min-width: 220px; }
+        .signature-line { border-top: 1.5px solid #0f172a; width: 100%; margin-bottom: 6px; }
+        .doctor-signature p { margin: 0; font-size: 13px; font-weight: 700; color: #0f172a; }
+        .doctor-signature span { font-size: 11px; color: #64748b; }
       </style>
     </head>
     <body>
       <div class="header">
-        <h1>🏥 Receta Médica</h1>
-        <p>Nova Dental Clinic</p>
+        <div class="clinic-brand">
+          ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" class="clinic-logo" alt="Logo" />` : `<div style="width:44px; height:44px; background:#0284c7; border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-size:24px; font-weight:900;">+</div>`}
+          <div class="clinic-info">
+            <h1>${escapeHtml(clinicName)}</h1>
+            <p>Servicios Médicos Profesionales • Prescripción Oficial</p>
+          </div>
+        </div>
+        <div class="rx-badge">Rx</div>
       </div>
       
-      <div class="info-section">
-        <div class="info-group">
+      <div class="patient-card">
+        <div class="data-field">
           <label>Paciente</label>
           <span>${escapeHtml(pacienteNombre)}</span>
         </div>
-        <div class="info-group">
-          <label>Fecha</label>
+        <div class="data-field" style="text-align: right;">
+          <label>Fecha de Emisión</label>
           <span>${escapeHtml(fecha)}</span>
         </div>
-        <div class="info-group">
-          <label>Diagnóstico</label>
-          <span>${escapeHtml(diagnostico || "No especificado")}</span>
+        <div class="data-field" style="grid-column: span 2; margin-top: 4px;">
+          <label>Diagnóstico / Impresión Clínica</label>
+          <span>${escapeHtml(diagnostico || "Evaluación Médica General")}</span>
         </div>
       </div>
 
-      <h3 style="color: #7c3aed; margin-bottom: 10px;">Medicamentos Recetados</h3>
+      <h3 style="color: #0284c7; margin: 0 0 10px 0; font-size: 15px; font-weight: 800; text-transform: uppercase;">Prescripción Farmacológica</h3>
       
       <table>
         <thead>
           <tr>
-            <th>#</th>
+            <th style="width: 30px;">#</th>
             <th>Medicamento</th>
             <th>Dosis</th>
             <th>Frecuencia</th>
@@ -126,14 +176,21 @@ const generarHTMLReceta = (
         </tbody>
       </table>
 
-      <div class="footer">
-        <p><strong>Indicaciones generales:</strong> Seguir las indicaciones al pie de la letra. Acudir a consulta si presenta efectos adversos.</p>
+      <div class="instructions">
+        <strong>Indicaciones para el Paciente:</strong>
+        Tomar los medicamentos según la pauta prescrita. En caso de presentar reacciones adversas o intolerancia, comuníquese de inmediato con la clínica.
       </div>
 
-      <div class="signature">
-        <div class="signature-line"></div>
-        <p style="margin: 0; font-weight: 600;">${escapeHtml(profesionalNombre)}</p>
-        <p style="margin: 0; color: #6b7280; font-size: 14px;">Firma del Profesional</p>
+      <div class="footer-signatures">
+        <div class="qr-placeholder">
+          <span>Código Digital de Autenticidad</span><br/>
+          <strong>Nexus-Clinic Rx</strong>
+        </div>
+        <div class="doctor-signature">
+          <div class="signature-line"></div>
+          <p>${escapeHtml(profesionalNombre)}</p>
+          <span>Médico / Profesional Tratante</span>
+        </div>
       </div>
     </body>
     </html>
@@ -170,6 +227,7 @@ export const RecetaActions = ({
   diagnostico = "",
   fecha = new Date().toLocaleDateString("es-ES"),
 }: RecetaActionsProps) => {
+  const { data: clinicConfig } = useClinicConfig();
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [email, setEmail] = useState(pacienteEmail);
@@ -187,7 +245,9 @@ export const RecetaActions = ({
       pacienteNombre,
       profesionalNombre,
       diagnostico,
-      fecha
+      fecha,
+      clinicConfig?.nombre_clinica || "Nexus Clinic",
+      clinicConfig?.logo_url
     );
 
     const printWindow = window.open("", "_blank");

@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Loader2, DollarSign, CreditCard, Banknote, FileSpreadsheet, Calendar } from "lucide-react";
+import { Plus, Loader2, DollarSign, CreditCard, Banknote, FileSpreadsheet, Calendar, Lock, Receipt } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FacturaFormDialog } from "@/components/facturacion/FacturaFormDialog";
+import { CierreCajaModal } from "@/components/facturacion/CierreCajaModal";
 import { format, startOfDay, endOfDay, isToday } from "date-fns";
 import { es } from "date-fns/locale";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -16,6 +17,7 @@ import { createExcelWorkbook } from "@/lib/excel-utils";
 
 const Facturacion = () => {
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const [showCierreModal, setShowCierreModal] = useState(false);
   const [fechaExport, setFechaExport] = useState<Date>(new Date());
 
   const { data: pagos, isLoading } = useQuery({
@@ -138,8 +140,16 @@ const Facturacion = () => {
           <h1 className="text-3xl font-bold text-foreground">Facturación</h1>
           <p className="text-muted-foreground">Gestiona facturas y pagos</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowNewDialog(true)} className="gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={() => setShowCierreModal(true)}
+            variant="outline"
+            className="gap-2 border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 font-bold shadow-sm"
+          >
+            <Lock className="h-4 w-4 text-indigo-500" />
+            <span>Arqueo y Cierre de Caja</span>
+          </Button>
+          <Button onClick={() => setShowNewDialog(true)} className="gap-2 font-bold">
             <Plus className="h-4 w-4" />
             Nuevo Pago
           </Button>
@@ -255,6 +265,7 @@ const Facturacion = () => {
       )}
 
       <FacturaFormDialog open={showNewDialog} onOpenChange={setShowNewDialog} />
+      <CierreCajaModal open={showCierreModal} onOpenChange={setShowCierreModal} />
     </div>
   );
 };

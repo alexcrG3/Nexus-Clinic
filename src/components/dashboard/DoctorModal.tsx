@@ -39,6 +39,7 @@ const DoctorModal = ({ isOpen, onClose, doctor, onSuccess }: DoctorModalProps) =
     email: "",
     foto_url: "",
     bio: "",
+    consultorio: "",
     activo: true,
   });
 
@@ -59,6 +60,7 @@ const DoctorModal = ({ isOpen, onClose, doctor, onSuccess }: DoctorModalProps) =
         email: doctor.email || "",
         foto_url: doctor.foto_url || "",
         bio: doctor.bio || "",
+        consultorio: doctor.consultorio || "",
         activo: doctor.activo ?? true,
       });
       if (doctor.horario_semanal) {
@@ -71,6 +73,7 @@ const DoctorModal = ({ isOpen, onClose, doctor, onSuccess }: DoctorModalProps) =
         email: "",
         foto_url: "",
         bio: "",
+        consultorio: "",
         activo: true,
       });
       setHorario(DAYS.reduce((acc, day) => ({
@@ -85,7 +88,13 @@ const DoctorModal = ({ isOpen, onClose, doctor, onSuccess }: DoctorModalProps) =
     setLoading(true);
 
     const payload = {
-      ...formData,
+      nombre: formData.nombre.trim(),
+      especialidad: formData.especialidad || null,
+      email: formData.email?.trim() || null,
+      foto_url: formData.foto_url?.trim() || null,
+      bio: formData.bio?.trim() || null,
+      consultorio: formData.consultorio?.trim() || null,
+      activo: formData.activo ?? true,
       horario_semanal: horario,
       dias_trabajo: Object.keys(horario).filter(day => horario[day].activo),
     };
@@ -107,9 +116,10 @@ const DoctorModal = ({ isOpen, onClose, doctor, onSuccess }: DoctorModalProps) =
     setLoading(false);
 
     if (error) {
+      console.error("Error guardando doctor:", error);
       toast({
         title: "Error",
-        description: "No se pudo guardar la información del doctor",
+        description: error.message || "No se pudo guardar la información del doctor",
         variant: "destructive",
       });
     } else {
@@ -189,6 +199,19 @@ const DoctorModal = ({ isOpen, onClose, doctor, onSuccess }: DoctorModalProps) =
                   placeholder="doctor@nexus.com" 
                   className="rounded-xl border-border/60"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="consultorio" className="text-sm font-bold text-secondary">Consultorio / Sala Asignada</Label>
+                <Input 
+                  id="consultorio" 
+                  value={formData.consultorio} 
+                  onChange={e => setFormData({...formData, consultorio: e.target.value})} 
+                  placeholder="Ej: Consultorio 1, 102, Sala Dental A" 
+                  className="rounded-xl border-border/60 font-semibold"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Se mostrará en la pantalla TV y en el llamador de turnos.
+                </p>
               </div>
             </div>
 

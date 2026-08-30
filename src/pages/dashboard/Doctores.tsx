@@ -30,6 +30,7 @@ interface Doctor {
   nombre: string;
   especialidad: string | null;
   email: string | null;
+  consultorio?: string | null;
   activo: boolean;
   foto_url?: string | null; // Placeholder as it might be in profiles
   dias_trabajo: string[] | null;
@@ -188,7 +189,14 @@ const Doctores = () => {
 
                 <div className="space-y-1">
                   <h3 className="font-bold text-lg text-secondary leading-tight line-clamp-1">{doctor.nombre}</h3>
-                  <p className="text-primary font-semibold text-sm">{doctor.especialidad || "Medicina General"}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-primary font-semibold text-sm">{doctor.especialidad || "Medicina General"}</p>
+                    {doctor.consultorio && (
+                      <span className="text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200 px-2 py-0.5 rounded-md">
+                        📍 {doctor.consultorio.toLowerCase().startsWith("consultorio") || doctor.consultorio.toLowerCase().startsWith("sala") ? doctor.consultorio : `Consultorio ${doctor.consultorio}`}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between py-3 border-y border-border/40">

@@ -1075,12 +1075,12 @@ export function MediaSettingsModal({
                     <span>Gestión y Reinicio de la Cola de Llamados</span>
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Controla los turnos en espera, vacía la cola del día a cero o recarga datos de prueba (independiente de citas médicas)
+                    Controla los turnos en espera o vacía la cola del día a cero.
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Opción 1: Vaciar todo a cero */}
                 <div className="p-3.5 rounded-2xl border border-rose-500/30 bg-rose-950/20 flex flex-col justify-between gap-3">
                   <div>
@@ -1103,29 +1103,7 @@ export function MediaSettingsModal({
                   </button>
                 </div>
 
-                {/* Opción 2: Cargar Demo */}
-                <div className="p-3.5 rounded-2xl border border-sky-500/30 bg-sky-950/20 flex flex-col justify-between gap-3">
-                  <div>
-                    <h4 className="text-xs font-extrabold text-white flex items-center gap-1.5 mb-1">
-                      <RefreshCw className="size-3.5 text-sky-400" /> Cargar Turnos de Prueba
-                    </h4>
-                    <p className="text-[11px] text-slate-400 leading-tight">
-                      Restablece la lista inicial con pacientes de prueba para verificar audio y TV.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onResetQueue?.("demo");
-                      onClose();
-                    }}
-                    className="w-full rounded-xl border border-sky-500/40 bg-sky-600/30 hover:bg-sky-600/50 text-sky-200 font-bold text-xs py-2 transition-all shadow-md active:scale-95"
-                  >
-                    Cargar Demo
-                  </button>
-                </div>
-
-                {/* Opción 3: Limpiar Historial */}
+                {/* Opción 2: Limpiar Historial */}
                 <div className="p-3.5 rounded-2xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between gap-3">
                   <div>
                     <h4 className="text-xs font-extrabold text-white flex items-center gap-1.5 mb-1">
@@ -1141,7 +1119,7 @@ export function MediaSettingsModal({
                       onClearHistorial?.();
                       onClose();
                     }}
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-2 transition-all shadow-md active:scale-95"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs py-2 transition-all shadow-md active:scale-95"
                   >
                     Limpiar Historial
                   </button>

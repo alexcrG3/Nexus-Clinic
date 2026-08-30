@@ -20,6 +20,7 @@ import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useMedicamentosCatalogo } from "@/hooks/useMedicamentosCatalogo";
 import { RecetaActions } from "./RecetaActions";
+import { VoiceDictationButton } from "@/components/ui/VoiceDictationButton";
 
 interface SignosVitales {
   presion_sistolica?: number;
@@ -351,7 +352,15 @@ export const ConsultaProfesional = ({
           </div>
 
           <div>
-            <Label className="font-medium">Motivo de consulta</Label>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="font-medium">Motivo de consulta</Label>
+              <VoiceDictationButton
+                fieldLabel="Motivo de consulta"
+                buttonText="Dictar"
+                currentValue={motivoConsulta}
+                onValueChange={setMotivoConsulta}
+              />
+            </div>
             <Textarea
               value={motivoConsulta}
               onChange={(e) => setMotivoConsulta(e.target.value)}
@@ -363,7 +372,15 @@ export const ConsultaProfesional = ({
           </div>
 
           <div>
-            <Label className="font-medium">Padecimiento</Label>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="font-medium">Padecimiento</Label>
+              <VoiceDictationButton
+                fieldLabel="Padecimiento"
+                buttonText="Dictar"
+                currentValue={padecimientoActual}
+                onValueChange={setPadecimientoActual}
+              />
+            </div>
             <Textarea
               value={padecimientoActual}
               onChange={(e) => setPadecimientoActual(e.target.value)}
@@ -381,7 +398,15 @@ export const ConsultaProfesional = ({
         <div className="space-y-6">
           {/* Signos vitales text area */}
           <div>
-            <Label className="font-semibold">Signos vitales</Label>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="font-semibold">Signos vitales / Hallazgos</Label>
+              <VoiceDictationButton
+                fieldLabel="Signos vitales"
+                buttonText="Dictar"
+                currentValue={signosVitalesNotas}
+                onValueChange={setSignosVitalesNotas}
+              />
+            </div>
             <Textarea
               value={signosVitalesNotas}
               onChange={(e) => setSignosVitalesNotas(e.target.value)}
@@ -469,7 +494,15 @@ export const ConsultaProfesional = ({
 
           {/* Notas de Enfermero(a) tratante */}
           <div>
-            <Label className="font-medium">Notas de Enfermero(a) tratante</Label>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="font-medium">Notas de Enfermero(a) tratante</Label>
+              <VoiceDictationButton
+                fieldLabel="Notas de enfermero"
+                buttonText="Dictar"
+                currentValue={notasEnfermero}
+                onValueChange={setNotasEnfermero}
+              />
+            </div>
             <Textarea
               value={notasEnfermero}
               onChange={(e) => setNotasEnfermero(e.target.value)}
@@ -482,7 +515,15 @@ export const ConsultaProfesional = ({
 
           {/* Campo personalizado (Question 2) */}
           <div>
-            <Label className="font-medium">Question 2</Label>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="font-medium">Question 2</Label>
+              <VoiceDictationButton
+                fieldLabel="Campo adicional"
+                buttonText="Dictar"
+                currentValue={campoPersonalizado}
+                onValueChange={setCampoPersonalizado}
+              />
+            </div>
             <Textarea
               value={campoPersonalizado}
               onChange={(e) => setCampoPersonalizado(e.target.value)}
@@ -495,7 +536,15 @@ export const ConsultaProfesional = ({
 
           {/* Nutrición */}
           <div>
-            <Label className="font-medium">Nutrición</Label>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="font-medium">Nutrición</Label>
+              <VoiceDictationButton
+                fieldLabel="Nutrición"
+                buttonText="Dictar"
+                currentValue={nutricion}
+                onValueChange={setNutricion}
+              />
+            </div>
             <Textarea
               value={nutricion}
               onChange={(e) => setNutricion(e.target.value)}
@@ -512,7 +561,15 @@ export const ConsultaProfesional = ({
       <CollapsibleSection title="Diagnóstico">
         <div className="space-y-4">
           <div>
-            <Label className="font-medium">Impresión diagnóstica</Label>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="font-medium">Impresión diagnóstica</Label>
+              <VoiceDictationButton
+                fieldLabel="Diagnóstico"
+                buttonText="Dictar"
+                currentValue={impresionDiagnostica}
+                onValueChange={setImpresionDiagnostica}
+              />
+            </div>
             <Textarea
               value={impresionDiagnostica}
               onChange={(e) => setImpresionDiagnostica(e.target.value)}
@@ -646,7 +703,15 @@ export const ConsultaProfesional = ({
 
           {/* Otras indicaciones */}
           <div className="border rounded-lg p-4">
-            <Label className="font-medium text-muted-foreground">Otras indicaciones</Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="font-medium text-muted-foreground">Otras indicaciones / Plan de tratamiento</Label>
+              <VoiceDictationButton
+                fieldLabel="Otras indicaciones"
+                buttonText="Dictar"
+                currentValue={otrasIndicaciones}
+                onValueChange={setOtrasIndicaciones}
+              />
+            </div>
             <Textarea
               value={otrasIndicaciones}
               onChange={(e) => setOtrasIndicaciones(e.target.value)}
@@ -654,7 +719,7 @@ export const ConsultaProfesional = ({
               rows={3}
               className="mt-2 border-0 p-0 focus-visible:ring-0 resize-none"
             />
-            <p className="text-xs text-muted-foreground text-right mt-1">0/3000</p>
+            <p className="text-xs text-muted-foreground text-right mt-1">{otrasIndicaciones.length} / 3000</p>
           </div>
         </div>
       </CollapsibleSection>
@@ -684,7 +749,15 @@ export const ConsultaProfesional = ({
           </div>
 
           <div>
-            <Label className="font-medium">Notas Internas (Solo visible para equipo médico)</Label>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="font-medium">Notas Internas (Solo visible para equipo médico)</Label>
+              <VoiceDictationButton
+                fieldLabel="Notas internas"
+                buttonText="Dictar"
+                currentValue={notasInternas}
+                onValueChange={setNotasInternas}
+              />
+            </div>
             <Textarea
               value={notasInternas}
               onChange={(e) => setNotasInternas(e.target.value)}

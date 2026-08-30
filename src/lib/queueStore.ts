@@ -8,6 +8,7 @@ export interface TurnoPaciente {
   especialidad?: string;
   consultorio?: string;
   horaCita?: string;
+  fechaCita?: string;
   estado: "en_espera" | "llamado" | "atendido" | "cancelado";
   timestampLlamada?: number;
   ticketNumero?: string;
@@ -196,25 +197,25 @@ export function saveMediaSettingsToStorage(settings: ClinicMediaSettings) {
 
 export const broadcastChannel = typeof window !== "undefined" ? new BroadcastChannel(CHANNEL_NAME) : null;
 
-export const DEMO_TURNOS: TurnoPaciente[] = [
-  { id: "1", nombre: "Jessica Jiménez Mora", doctorNombre: "Dr. Roberto Chaverri", especialidad: "Medicina General", consultorio: "1", horaCita: "08:30", estado: "en_espera", ticketNumero: "A-01", prioridad: null },
-  { id: "2", nombre: "Mauricio Valle Arguedas", doctorNombre: "Dr. Roberto Chaverri", especialidad: "Medicina General", consultorio: "1", horaCita: "08:45", estado: "en_espera", ticketNumero: "A-04", prioridad: null },
-  { id: "3", nombre: "Johnny Pérez Morales", doctorNombre: "Dra. Sofía Huertas", especialidad: "Pediatría", consultorio: "2", horaCita: "09:00", estado: "en_espera", ticketNumero: "P-02", prioridad: "preferencial" },
-  { id: "4", nombre: "Gabriel Céspedes Ruiz", doctorNombre: "Dra. Sofía Huertas", especialidad: "Pediatría", consultorio: "2", horaCita: "09:15", estado: "en_espera", ticketNumero: "P-05", prioridad: "preferencial" },
-  { id: "5", nombre: "Mayra Figueroa Castillo", doctorNombre: "Dra. Carmen Figueroa", especialidad: "Ginecología", consultorio: "3", horaCita: "09:30", estado: "en_espera", ticketNumero: "U-03", prioridad: "urgencia" },
-  { id: "6", nombre: "Karla Vargas Solís", doctorNombre: "Dra. Carmen Figueroa", especialidad: "Ginecología", consultorio: "3", horaCita: "09:45", estado: "en_espera", ticketNumero: "A-06", prioridad: null },
-  { id: "7", nombre: "Esteban Mora Chaves", doctorNombre: "Dr. Andrés Salazar", especialidad: "Odontología", consultorio: "4", horaCita: "10:00", estado: "en_espera", ticketNumero: "A-07", prioridad: null },
-];
+export const DEMO_TURNOS: TurnoPaciente[] = [];
 
 export function getTurnosFromStorage(): { turnos: TurnoPaciente[]; ultimoLlamado: TurnoPaciente | null } {
   if (typeof window === "undefined") return { turnos: [], ultimoLlamado: null };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ turnos: DEMO_TURNOS, ultimoLlamado: null }));
-      return { turnos: DEMO_TURNOS, ultimoLlamado: null };
+      return { turnos: [], ultimoLlamado: null };
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    const cleanedTurnos = (parsed.turnos || []).filter(
+      (t: TurnoPaciente) => !["1", "2", "3", "4", "5", "6", "7"].includes(t.id) && (t.citaId || (t.id && t.id.length > 5))
+    );
+    const lastCalled = parsed.ultimoLlamado;
+    const isCleanLast = lastCalled && !["1", "2", "3", "4", "5", "6", "7"].includes(lastCalled.id);
+    return {
+      turnos: cleanedTurnos,
+      ultimoLlamado: isCleanLast ? lastCalled : null,
+    };
   } catch (e) {
     return { turnos: [], ultimoLlamado: null };
   }
@@ -266,10 +267,10 @@ export function clearTurnosQueue(): { turnos: TurnoPaciente[]; ultimoLlamado: Tu
 }
 
 export function resetToDemoTurnos(): { turnos: TurnoPaciente[]; ultimoLlamado: TurnoPaciente | null } {
-  const demoState = { turnos: DEMO_TURNOS, ultimoLlamado: null };
-  saveTurnosToStorage(demoState);
-  sendTvSignal("RESET_QUEUE", demoState);
-  return demoState;
+  const emptyState = { turnos: [], ultimoLlamado: null };
+  saveTurnosToStorage(emptyState);
+  sendTvSignal("RESET_QUEUE", emptyState);
+  return emptyState;
 }
 
 export function emitLlamadoEvent(paciente: TurnoPaciente) {
