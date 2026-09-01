@@ -201,7 +201,35 @@ export function buildCallSpeechPhrase(
   return `${ticketPhrase}Paciente ${patientName}, por favor pasar a consulta médica.`;
 }
 
-import { resolveVoiceForPersona } from "./voicePersonas";
+import { resolveVoiceForPersona, isFemaleVoice, CLINIC_VOICE_PERSONAS } from "./voicePersonas";
+import { getMediaSettingsFromStorage } from "./queueStore";
+
+export function getLoadedVoicesAsync(): Promise<SpeechSynthesisVoice[]> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      resolve([]);
+      return;
+    }
+
+    const currentVoices = window.speechSynthesis.getVoices();
+    if (currentVoices && currentVoices.length > 0) {
+      resolve(currentVoices);
+      return;
+    }
+
+    let resolved = false;
+    const finish = () => {
+      if (!resolved) {
+        resolved = true;
+        const v = window.speechSynthesis.getVoices();
+        resolve(v || []);
+      }
+    };
+
+    window.speechSynthesis.onvoiceschanged = finish;
+    setTimeout(finish, 350);
+  });
+}
 
 export function speakPatientCall(
   patientName: string,
@@ -210,62 +238,70 @@ export function speakPatientCall(
   ticketCode?: string,
   mode: VoiceMode = "full",
   selectedVoiceURI?: string,
-  rate = 0.86,
-  pitch = 1.0,
-  activePersonaId?: string
+  rate = 0.88,
+  pitch = 1.25,
+  activePersonaId = "female-valeria"
 ) {
   speakPatientCallAsync(patientName, doctorName, officeName, ticketCode, mode, selectedVoiceURI, rate, pitch, activePersonaId);
 }
 
-export function speakPatientCallAsync(
+export async function speakPatientCallAsync(
   patientName: string,
   doctorName?: string,
   officeName?: string,
   ticketCode?: string,
   mode: VoiceMode = "full",
   selectedVoiceURI?: string,
-  rate = 0.86,
-  pitch = 1.0,
+  rate?: number,
+  pitch?: number,
   activePersonaId?: string
 ): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      resolve();
-      return;
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    return;
+  }
+
+  try {
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
     }
 
-    try {
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
+    // 1. ESPERAR A QUE LAS VOCES ESTÉN TOTALMENTE DISPONIBLES TRAS RECARGAR LA PÁGINA
+    const voices = await getLoadedVoicesAsync();
+
+    // 2. RECUPERAR VALORES PERSISTIDOS DE STORAGE PARA NUNCA REVERTIR A VOZ POR DEFECTO
+    const saved = getMediaSettingsFromStorage();
+    const effectivePersonaId = activePersonaId || saved.activePersonaId || "female-valeria";
+    const effectiveVoiceURI = selectedVoiceURI || saved.selectedVoiceURI;
+    let finalRate = rate ?? saved.voiceRate ?? 0.88;
+    let finalPitch = pitch ?? saved.voicePitch ?? 1.25;
+
+    let chosenVoice: SpeechSynthesisVoice | undefined;
+
+    // 3. RESOLVER VOZ SEGÚN LA PERSONA SELECCIONADA
+    if (effectivePersonaId && voices.length > 0) {
+      const resolved = resolveVoiceForPersona(effectivePersonaId, voices);
+      if (resolved.voice) {
+        chosenVoice = resolved.voice;
+        finalRate = resolved.rate;
+        finalPitch = resolved.pitch;
       }
+    } else if (effectiveVoiceURI && voices.length > 0) {
+      chosenVoice = voices.find((v) => v.voiceURI === effectiveVoiceURI || v.name === effectiveVoiceURI);
+    }
 
-      const voices = window.speechSynthesis.getVoices();
-      let chosenVoice: SpeechSynthesisVoice | undefined;
-      let finalRate = rate;
-      let finalPitch = pitch;
-
-      // Si hay un perfil de locutor activo (ej: Dra. Valeria / Femenina), resolver prioritariamente la voz femenina
-      if (activePersonaId && voices && voices.length > 0) {
-        const resolved = resolveVoiceForPersona(activePersonaId, voices);
-        if (resolved.voice) {
-          chosenVoice = resolved.voice;
-          finalRate = resolved.rate;
-          finalPitch = resolved.pitch;
-        }
-      } else if (selectedVoiceURI && voices && voices.length > 0) {
-        chosenVoice = voices.find((v) => v.voiceURI === selectedVoiceURI || v.name === selectedVoiceURI);
+    // 4. GARANTÍA DE GÉNERO FEMENINO: Si la persona elegida es femenina, asegurar timbre femenino
+    const persona = CLINIC_VOICE_PERSONAS.find((p) => p.id === effectivePersonaId) || CLINIC_VOICE_PERSONAS[0];
+    if (persona.gender === "female") {
+      if (!chosenVoice || !isFemaleVoice(chosenVoice.name)) {
+        const fallback = resolveVoiceForPersona("female-valeria", voices);
+        if (fallback.voice) chosenVoice = fallback.voice;
+        finalPitch = Math.max(finalPitch, 1.45);
       }
+    }
 
-      // Si no se encontró, usar resolución por defecto femenina (Dra. Valeria)
-      if (!chosenVoice && voices && voices.length > 0) {
-        const fallbackResolved = resolveVoiceForPersona("female-valeria", voices);
-        chosenVoice = fallbackResolved.voice || voices.find((v) => v.lang.startsWith("es")) || voices[0];
-        finalRate = fallbackResolved.rate;
-        finalPitch = fallbackResolved.pitch;
-      }
+    const textToSpeak = buildCallSpeechPhrase(patientName, doctorName, officeName, ticketCode, mode);
 
-      const textToSpeak = buildCallSpeechPhrase(patientName, doctorName, officeName, ticketCode, mode);
-
+    return new Promise((resolve) => {
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
       utterance.lang = chosenVoice?.lang || "es-ES";
       utterance.rate = finalRate;
@@ -290,10 +326,10 @@ export function speakPatientCallAsync(
       setTimeout(finish, 6500);
 
       window.speechSynthesis.speak(utterance);
-    } catch (err) {
-      resolve();
-    }
-  });
+    });
+  } catch (err) {
+    console.warn("Error en speakPatientCallAsync:", err);
+  }
 }
 
 let speechQueueChain: Promise<void> = Promise.resolve();

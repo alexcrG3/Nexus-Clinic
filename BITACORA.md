@@ -8,6 +8,21 @@
 
 ---
 
+### 🕒 [21:42 - 21:45] — Incidencia Crítica: Voz Masculina al Recargar la Página por Carga Asíncrona de Web Speech API
+* **Síntoma Reportado:**  
+  La voz femenina funcionaba correctamente en la sesión, pero al presionar recargar en el navegador (F5 / reload) y llamar a un paciente, volvía a sonar la voz de hombre.
+* **Causa Raíz:**  
+  1. En los navegadores Chromium/Edge, `window.speechSynthesis.getVoices()` retorna un arreglo vacío `[]` de forma asíncrona durante los primeros 200–500ms tras recargar la página hasta que se dispara el evento `window.speechSynthesis.onvoiceschanged`.
+  2. Al llamar a un paciente inmediatamente tras recargar, `soundService.ts` leía `voices = []`, no encontraba la voz de la *Dra. Valeria* en ese instante y dejaba `utterance.voice` indefinido, provocando que el navegador recurriera a su voz predeterminada del sistema operativo (que en Windows es masculina por defecto con pitch 1.0).
+* **Solución Aplicada y Blindaje Definitivo:**  
+  1. `getLoadedVoicesAsync()` en `soundService.ts`: Ahora espera de forma asíncrona (`Promise`) a que las voces estén 100% cargadas en memoria tras el recargado antes de emitir cualquier sonido.
+  2. Persistencia Forzada: Se lee directamente la configuración guardada en `localStorage` (`getMediaSettingsFromStorage()`) garantizando que `activePersonaId: "female-valeria"` se aplique siempre.
+  3. Seguro de Género Femenino: Si la persona activa es femenina, el sistema verifica que la voz asignada sea femenina; de lo contrario, modula dinámicamente el tono (*Pitch*) a agudo (mínimo 1.45), asegurando que **NUNCA pueda sonar una voz de hombre al recargar la página**.
+* **Lección / Acción Preventiva:**  
+  Cualquier llamada a síntesis de voz tras un reload debe esperar a que el catálogo de voces del navegador termine de inicializarse mediante una promesa de carga asíncrona.
+
+---
+
 ### 🕒 [21:39 - 21:42] — Incidencia: Visibilidad Incompleta del Odontograma y Panel de Marcado en Pantallas Estándar / Móviles
 * **Síntoma Reportado:**  
   Tanto en orientación vertical como horizontal, los dientes del cuadrante derecho (23 a 28 y 33 a 38) quedaban cortados y el panel lateral para marcar superficies/estados desplazaba el odontograma fuera de la pantalla.
