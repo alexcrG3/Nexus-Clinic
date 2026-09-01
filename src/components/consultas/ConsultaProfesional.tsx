@@ -24,6 +24,8 @@ import { RecetaActions } from "./RecetaActions";
 import { VoiceDictationButton } from "@/components/ui/VoiceDictationButton";
 import { AiAmbientScribeModal } from "./AiAmbientScribeModal";
 import { ClinicalAiExtraction } from "@/services/aiScribe/types";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SignosVitales {
   presion_sistolica?: number;
@@ -356,6 +358,55 @@ export const ConsultaProfesional = ({
 
     if (ext.medicamentos && ext.medicamentos.length > 0) {
       setMedicamentos(ext.medicamentos);
+    }
+
+    // Auto-marcar piezas en el Odontograma del paciente
+    if (ext.dientes_detectados && ext.dientes_detectados.length > 0 && expedienteId) {
+      (async () => {
+        try {
+          const { data: existingOdon } = await supabase
+            .from("odontogramas")
+            .select("*")
+            .eq("expediente_id", expedienteId)
+            .order("fecha", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          const updatedDientes = {
+            ...((existingOdon?.datos_dientes as Record<string, any>) || {}),
+          };
+
+          ext.dientes_detectados?.forEach((d) => {
+            updatedDientes[d.numero.toString()] = {
+              condicion: d.condicion,
+              superficies: { oclusal: d.condicion },
+              notas: `Marcado automáticamente por Copiloto IA: ${d.condicion}`,
+            };
+          });
+
+          if (existingOdon) {
+            await supabase
+              .from("odontogramas")
+              .update({
+                datos_dientes: updatedDientes,
+                fecha: new Date().toISOString().split("T")[0],
+              })
+              .eq("id", existingOdon.id);
+          } else {
+            await supabase.from("odontogramas").insert({
+              expediente_id: expedienteId,
+              datos_dientes: updatedDientes,
+              fecha: new Date().toISOString().split("T")[0],
+            });
+          }
+
+          toast.success(
+            `🦷 Pieza(s) ${ext.dientes_detectados?.map((d) => d.numero).join(", ")} marcada(s) automáticamente en el Odontograma.`
+          );
+        } catch (err) {
+          console.warn("Error actualizando odontograma con IA:", err);
+        }
+      })();
     }
   };
 

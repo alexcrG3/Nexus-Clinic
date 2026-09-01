@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, User, Calendar, Eye, Stethoscope, UserPlus } from "lucide-react";
+import { FileText, User, Calendar, Eye, Stethoscope, UserPlus, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -32,7 +32,7 @@ export const ExpedientesList = ({ expedientes }: ExpedientesListProps) => {
         {expedientes.map((expediente) => (
           <Card key={expediente.id} className="hover:shadow-md transition-shadow">
             <CardHeader>
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between flex-wrap gap-3">
                 <div className="flex gap-4">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <FileText className="h-6 w-6 text-primary" />
@@ -53,14 +53,24 @@ export const ExpedientesList = ({ expedientes }: ExpedientesListProps) => {
                     </div>
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate(`/dashboard/expedientes/${expediente.id}`)}
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  Ver Detalle
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    size="sm"
+                    className="bg-gradient-to-r from-primary via-indigo-600 to-sky-600 hover:from-primary/90 hover:to-sky-600/90 text-white font-bold gap-1.5 text-xs shadow-sm"
+                    onClick={() => navigate(`/dashboard/expedientes/${expediente.id}`)}
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                    <span>Consulta IA</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate(`/dashboard/expedientes/${expediente.id}`)}
+                  >
+                    <Eye className="h-4 w-4 mr-1.5" />
+                    Ver Detalle
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>

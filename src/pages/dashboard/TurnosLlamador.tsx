@@ -80,6 +80,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { MetricsModal } from "@/components/dashboard/MetricsModal";
 import { MediaSettingsModal } from "@/components/dashboard/MediaSettingsModal";
 import { CobroConsultaModal } from "@/components/dashboard/CobroConsultaModal";
+import { AiAmbientScribeModal } from "@/components/consultas/AiAmbientScribeModal";
 
 // Componente de carrusel de afiches (preview en dashboard)
 const BannerSlideshow = ({ banners, durationSeconds }: { banners: AdBanner[]; durationSeconds: number }) => {
@@ -292,6 +293,8 @@ export const TurnosLlamador = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showMetricsModal, setShowMetricsModal] = useState(false);
   const [cobroModalOpen, setCobroModalOpen] = useState(false);
+  const [scribeModalOpen, setScribeModalOpen] = useState(false);
+  const [scribePatient, setScribePatient] = useState<TurnoPaciente | null>(null);
   const [pacienteACobrar, setPacienteACobrar] = useState<{
     paciente: TurnoPaciente;
     officeId: string;
@@ -1193,6 +1196,17 @@ export const TurnosLlamador = () => {
 
                           <div className="mt-2.5 flex items-center gap-1.5 pt-2 border-t border-emerald-500/20 flex-wrap">
                             <button
+                              onClick={() => {
+                                setScribePatient(inConsultation);
+                                setScribeModalOpen(true);
+                              }}
+                              className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-sky-600 via-indigo-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 px-2.5 py-1 text-[10px] sm:text-[11px] font-black text-white transition-all shadow-md"
+                              title="Activar escucha ambiental y auto-llenado con IA"
+                            >
+                              <Sparkles className="size-3 text-amber-300" />
+                              <span>Copiloto IA</span>
+                            </button>
+                            <button
                               onClick={() => handleReCallOffice(office.id)}
                               className="flex items-center gap-1 rounded-lg bg-slate-800 hover:bg-emerald-600/30 border border-slate-700 px-2 py-1 text-[10px] sm:text-[11px] font-bold text-slate-200 hover:text-emerald-300 transition-all"
                             >
@@ -1751,6 +1765,18 @@ export const TurnosLlamador = () => {
             handleFinishConsultation(pacienteACobrar.officeId);
             setPacienteACobrar(null);
           }
+        }}
+      />
+
+      {/* MODAL DE COPILOTO IA / ESCUCHA AMBIENTAL */}
+      <AiAmbientScribeModal
+        open={scribeModalOpen}
+        onOpenChange={setScribeModalOpen}
+        pacienteNombre={scribePatient?.nombre || "Paciente"}
+        especialidad={offices.find((o) => o.id === scribePatient?.consultorio)?.specialty || "Medicina General"}
+        onApplyExtraction={(extraction) => {
+          toast.success(`✨ Consulta procesada para ${scribePatient?.nombre || "el paciente"}. Diagnóstico: ${extraction.diagnostico_principal} (${extraction.codigo_cie10})`);
+          setScribeModalOpen(false);
         }}
       />
 

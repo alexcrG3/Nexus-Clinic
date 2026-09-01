@@ -8,6 +8,16 @@
 
 ---
 
+### 🕒 [20:54 - 20:58] — Implementación: Auto-Marcado de Piezas en el Odontograma y Alta Precisión Anatómica
+* **Objetivo / Requerimiento:**  
+  El usuario solicitó que el Copiloto IA no solo genere el diagnóstico de forma hiper-específica (indicando la pieza dental exacta y síntomas), sino que además **marque automáticamente la pieza en el Odontograma del paciente** al aplicar la consulta.
+* **Solución Implementada:**  
+  1. `scribeEngine.ts`: Reconocimiento inteligente de piezas dentales FDI (ej. `pieza 46`, `molar inferior derecho`, etc.) y de la condición patológica (`caries`, `obturacion`, `corona`, `endodoncia`, `fractura`, `extraccion_indicada`).
+  2. `AiAmbientScribeModal.tsx`: Visualización de insignias interactivas con las piezas detectadas antes de aplicar.
+  3. `ConsultaProfesional.tsx`: Sincronización automática en background con la tabla `odontogramas` en Supabase al presionar *"Aplicar al Expediente y Receta"*, actualizando el estado de la pieza (ej: `46: { condicion: 'caries' }`) sin necesidad de entrar a marcarla manualmente.
+
+---
+
 ### 🕒 [20:30 - 20:36] — Implementación: Copiloto Clínico con IA (Estilo Heidi Health)
 * **Objetivo / Requerimiento:**  
   Permitir que el médico active una escucha ambiental durante la consulta en vivo. La IA procesa el diálogo médico-paciente y auto-rellena en formato SOAP el motivo de consulta, examen físico, diagnóstico CIE-10, prescripción de medicamentos con posología completa y resumen claro para el paciente.

@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, FileText, Download, Pencil, Smile, Clock, Phone, CheckCircle2, XCircle, AlertCircle, Plus } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, Download, Pencil, Smile, Clock, Phone, CheckCircle2, XCircle, AlertCircle, Plus, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConsultaEditDialog } from "@/components/consultas/ConsultaEditDialog";
 import { ConsultaFormDialog } from "@/components/consultas/ConsultaFormDialog";
@@ -190,15 +190,27 @@ const ExpedienteDetalle = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header con navegación */}
-      <div className="flex items-center justify-between">
+      {/* Header con navegación y acción rápida de IA */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <Button variant="outline" onClick={handleExportExcel}>
-          <Download className="w-4 h-4 mr-2" />
-          Exportar Excel
-        </Button>
+
+        <div className="flex items-center gap-2">
+          {canEditConsultas && (
+            <Button
+              onClick={() => setShowNewConsulta(true)}
+              className="bg-gradient-to-r from-primary via-indigo-600 to-sky-600 hover:from-primary/90 hover:to-sky-600/90 text-white font-bold gap-1.5 shadow-md text-xs sm:text-sm"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>Nueva Consulta con Copiloto IA</span>
+            </Button>
+          )}
+          <Button variant="outline" onClick={handleExportExcel} className="text-xs sm:text-sm">
+            <Download className="w-4 h-4 mr-2" />
+            Exportar Excel
+          </Button>
+        </div>
       </div>
 
       {/* Patient Header Card */}
@@ -214,7 +226,12 @@ const ExpedienteDetalle = () => {
               Odontograma
             </TabsTrigger>
           )}
-          <TabsTrigger value="consultas">Consultas</TabsTrigger>
+          <TabsTrigger value="consultas" className="flex items-center gap-1.5 font-bold">
+            <span>Consultas</span>
+            <span className="rounded-full bg-primary/20 text-primary border border-primary/30 px-1.5 py-0.2 text-[9px] font-black">
+              ✨ IA
+            </span>
+          </TabsTrigger>
           <TabsTrigger value="consentimiento">Consentimiento</TabsTrigger>
           <TabsTrigger value="documentos">Documentos</TabsTrigger>
         </TabsList>
@@ -388,10 +405,20 @@ const ExpedienteDetalle = () => {
                   </CardDescription>
                 </div>
                 {canEditConsultas && (
-                  <Button onClick={() => setShowNewConsulta(true)} size="sm">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nueva Consulta
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => setShowNewConsulta(true)}
+                      size="sm"
+                      className="bg-gradient-to-r from-primary via-indigo-600 to-sky-600 hover:from-primary/90 hover:to-sky-600/90 text-white font-bold gap-1.5 shadow-md"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      <span>Consulta con Copiloto IA</span>
+                    </Button>
+                    <Button onClick={() => setShowNewConsulta(true)} size="sm" variant="outline">
+                      <Plus className="w-4 h-4 mr-1" />
+                      Nueva Consulta
+                    </Button>
+                  </div>
                 )}
               </div>
             </CardHeader>

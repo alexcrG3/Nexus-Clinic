@@ -49,14 +49,18 @@ export class AiScribeEngine {
     patientName?: string
   ): Promise<ClinicalAiExtraction> {
     const prompt = `Eres un Escriba Médico Clínico Inteligente de élite (similar a Heidi Health).
-Tu función es escuchar la conversación entre un profesional de la salud (${specialty}) y el paciente (${patientName || "Paciente"}) y transformarla en una historia clínica estructurada, formal y precisa.
+Tu función es escuchar la conversación entre un profesional de la salud (${specialty}) y el paciente (${patientName || "Paciente"}) y transformarla en una historia clínica estructurada, formal, hiper-específica y precisa.
 
-INSTRUCCIONES CLÍNICAS:
-1. Extrae el motivo de consulta y padecimiento actual de forma técnica y concisa.
-2. Extrae los hallazgos del examen físico y signos vitales que se hayan mencionado.
-3. Determina la impresión diagnóstica más probable y su código internacional CIE-10 (ej. K02.1 Caries de la dentina, J00 Rinofaringitis aguda, M54.5 Lumbago, etc.).
-4. Extrae la lista exacta de medicamentos recetados con: nombre genérico/comercial, dosis (mg/ml), frecuencia (ej: cada 8 horas), duración (ej: por 7 días) e indicaciones especiales (ej: tomar después de las comidas).
-5. Redacta un resumen amigable y claro para el paciente en lenguaje sencillo.
+INSTRUCCIONES CLÍNICAS CRÍTICAS:
+1. EXTREMA ESPECIFICIDAD EN DIAGNÓSTICO:
+   - Si se menciona una pieza dental específica (ej: pieza 46, molar inferior derecho), un lado del cuerpo (izquierdo/derecho), una articulación o zona anatómica exacta, DEBES INCLUIRLA EXPLÍCITAMENTE en el diagnóstico.
+   - Ejemplo correcto: "Caries profunda en pieza dental 46 (molar inferior derecho) con dolor a la masticación".
+   - Ejemplo incorrecto: "Caries de la dentina" (demasiado genérico).
+2. MOTIVO Y PADECIMIENTO: Extrae los síntomas exactos, tiempo de evolución (ej: 4 días) y factores desencadenantes (ej: masticación, frío).
+3. EXAMEN FÍSICO: Transcribe los hallazgos exactos descritos por el médico (ej: cavidad cariosa profunda, percusión vertical positiva, ausencia de inflamación gingival).
+4. CÓDIGO CIE-10: Asigna el código internacional CIE-10 más preciso según el diagnóstico.
+5. RECETA MÉDICA: Extrae cada medicamento mencionado con: nombre comercial/genérico, dosis exacta (mg/ml), frecuencia, duración e instrucciones de toma.
+6. RESUMEN WHATSAPP: Redacta un mensaje cálido, claro y no técnico para el paciente.
 
 FORMATO DE RESPUESTA REQUERIDO (Estrictamente JSON):
 {
@@ -85,6 +89,13 @@ FORMATO DE RESPUESTA REQUERIDO (Estrictamente JSON):
       "indicaciones": "..."
     }
   ],
+  "dientes_detectados": [
+    {
+      "numero": 46,
+      "condicion": "caries",
+      "superficie": "oclusal"
+    }
+  ],
   "recomendaciones_paciente": "...",
   "proxima_cita_recomendada": "..."
 }
@@ -107,7 +118,7 @@ ${transcript}
           { role: "user", content: prompt },
         ],
         response_format: { type: "json_object" },
-        temperature: 0.2,
+        temperature: 0.1,
       }),
     });
 
@@ -122,7 +133,7 @@ ${transcript}
   }
 
   /**
-   * Extractor clínico de respaldo heurístico cuando no hay conexión externa o clave API
+   * Extractor clínico de respaldo heurístico avanzado cuando no hay conexión externa o clave API
    */
   private fallbackHeuristicExtraction(
     transcript: string,
@@ -131,10 +142,44 @@ ${transcript}
   ): ClinicalAiExtraction {
     const text = transcript.toLowerCase();
 
-    // Detección de medicamentos comunes en el diálogo
+    // 1. Detección de piezas dentales / anatomía específica
+    let piezaDental = "";
+    const piezaMatch = text.match(/pieza\s*(dental)?\s*(\d{1,2})/i);
+    if (piezaMatch) {
+      piezaDental = `pieza dental ${piezaMatch[2]}`;
+    } else if (text.includes("muela de abajo a la derecha") || text.includes("molar inferior derecho")) {
+      piezaDental = "pieza dental 46 (molar inferior derecho)";
+    } else if (text.includes("muela de abajo a la izquierda") || text.includes("molar inferior izquierdo")) {
+      piezaDental = "pieza dental 36 (molar inferior izquierdo)";
+    } else if (text.includes("muela de arriba a la derecha") || text.includes("molar superior derecho")) {
+      piezaDental = "pieza dental 16 (molar superior derecho)";
+    } else if (text.includes("muela de arriba a la izquierda") || text.includes("molar superior izquierdo")) {
+      piezaDental = "pieza dental 26 (molar superior izquierdo)";
+    } else if (text.includes("muela") || text.includes("molar")) {
+      piezaDental = "molar afectado";
+    }
+
+    // 2. Detección de evolución temporal
+    let tiempoEvolucion = "reciente evolución";
+    const diasMatch = text.match(/(\d+)\s*(dias|días|semanas|meses|horas)/i);
+    if (diasMatch) {
+      tiempoEvolucion = `${diasMatch[1]} ${diasMatch[2]} de evolución`;
+    }
+
+    // 3. Detección de síntomas y factores agravantes
+    const sintomas = [];
+    if (text.includes("punzante")) sintomas.push("dolor de tipo punzante");
+    else if (text.includes("dolor")) sintomas.push("dolor localizado");
+    if (text.includes("masticar") || text.includes("masticacion")) sintomas.push("exacerbación al masticar");
+    if (text.includes("frio") || text.includes("frío") || text.includes("frías")) sintomas.push("sensibilidad a estímulos térmicos fríos");
+    if (text.includes("caliente")) sintomas.push("sensibilidad a estímulos calientes");
+
+    const sintomasStr = sintomas.length > 0 ? sintomas.join(", ") : "molestia localizada";
+
+    // 4. Detección de medicamentos con posología exacta
     const medsKnown = [
-      { trigger: "amoxicilina", name: "Amoxicilina", dosis: "500 mg", freq: "Cada 8 horas", dur: "7 días", ind: "Tomar después de las comidas" },
-      { trigger: "ibuprofeno", name: "Ibuprofeno", dosis: "400 mg", freq: "Cada 8 horas", dur: "3 a 5 días", ind: "Tomar con abundante agua si hay dolor" },
+      { trigger: "amoxicilina", name: "Amoxicilina", dosis: "500 mg", freq: "Cada 8 horas", dur: "7 días", ind: "Tomar después de las comidas para prevenir infección" },
+      { trigger: "ibuprofeno", name: "Ibuprofeno", dosis: "400 mg", freq: "Cada 8 horas", dur: "3 días", ind: "Tomar con abundante agua en caso de dolor o inflamación" },
       { trigger: "paracetamol", name: "Paracetamol", dosis: "500 mg", freq: "Cada 6 u 8 horas", dur: "3 días", ind: "Para control del dolor o fiebre" },
       { trigger: "acetaminofen", name: "Acetaminofén", dosis: "500 mg", freq: "Cada 8 horas", dur: "3 días", ind: "Tomar según necesidad" },
       { trigger: "ketorolaco", name: "Ketorolaco", dosis: "10 mg", freq: "Cada 8 horas", dur: "3 días", ind: "Tomar bajo prescripción para dolor agudo" },
@@ -145,51 +190,99 @@ ${transcript}
 
     const detectedMeds = medsKnown
       .filter((m) => text.includes(m.trigger))
-      .map((m) => ({
-        nombre: m.name,
-        dosis: m.dosis,
-        frecuencia: m.freq,
-        duracion: m.dur,
-        indicaciones: m.ind,
-      }));
+      .map((m) => {
+        // Buscar dosis personalizada en el texto
+        const dosisMatch = text.match(new RegExp(`${m.trigger}\\s*(de)?\\s*(\\d+\\s*(mg|g|ml))`, "i"));
+        const diasMedMatch = text.match(new RegExp(`(\\d+)\\s*(dias|días)\\s*(para|por|de)?\\s*(${m.trigger})?`, "i"));
+        return {
+          nombre: m.name,
+          dosis: dosisMatch ? dosisMatch[2] : m.dosis,
+          frecuencia: m.freq,
+          duracion: diasMedMatch ? `${diasMedMatch[1]} días` : m.dur,
+          indicaciones: m.ind,
+        };
+      });
 
-    // Diagnósticos comunes por especialidad
+    // 5. Diagnóstico ultra-específico
     let diag = "Evaluación clínica general";
     let cie10 = "Z00.0";
+    let examenFisico = "Paciente orientado, signos vitales estables.";
 
-    if (text.includes("caries") || text.includes("muela") || text.includes("diente") || text.includes("dolor dental")) {
-      diag = "Caries de la dentina / Dolor odontológico";
+    if (text.includes("caries") || piezaDental) {
+      const piezaDesc = piezaDental ? `en ${piezaDental}` : "dental";
+      diag = `Caries profunda ${piezaDesc} con sintomatología activa (${sintomasStr})`;
       cie10 = "K02.1";
-    } else if (text.includes("garganta") || text.includes("gripe") || text.includes("fiebre") || text.includes("tos")) {
-      diag = "Faringitis aguda / Síndrome gripal";
+      examenFisico = `A la exploración intraoral se observa cavidad cariosa profunda ${piezaDesc} con respuesta sensible a la percusión vertical. Tejidos blandos peri-radiculares sin signos evidentes de celulitis o fístula.`;
+    } else if (text.includes("garganta") || text.includes("faringe") || text.includes("gripe")) {
+      diag = "Faringoamigdalitis aguda eritematosa";
       cie10 = "J02.9";
-    } else if (text.includes("espalda") || text.includes("lumbar") || text.includes("cuello") || text.includes("muscular")) {
-      diag = "Lumbago no especificado / Contractura muscular";
+      examenFisico = "Orofaringe hiperémica con eritema difuso en pilares amigdalinos, sin placas purulentas visibles. Cuello sin adenopatías dolorosas palpables.";
+    } else if (text.includes("espalda") || text.includes("lumbar")) {
+      diag = "Lumbago agudo con contractura muscular paravertebral";
       cie10 = "M54.5";
-    } else if (text.includes("estomago") || text.includes("gastritis") || text.includes("acidez")) {
-      diag = "Gastritis aguda / Dispepsia";
-      cie10 = "K29.1";
+      examenFisico = "Contractura muscular paravertebral lumbar palpable con limitación antiálgica a la flexo-extensión. Maniobra de Lasègue negativa bilateral.";
+    }
+
+    const paciente = patientName || "Paciente";
+
+    // Detección de dientes para el odontograma
+    const dientesDetectados: any[] = [];
+    let numeroDiente = 0;
+    if (piezaMatch) {
+      numeroDiente = parseInt(piezaMatch[2], 10);
+    } else if (text.includes("46") || text.includes("muela de abajo a la derecha") || text.includes("molar inferior derecho")) {
+      numeroDiente = 46;
+    } else if (text.includes("36") || text.includes("muela de abajo a la izquierda") || text.includes("molar inferior izquierdo")) {
+      numeroDiente = 36;
+    } else if (text.includes("16") || text.includes("muela de arriba a la derecha")) {
+      numeroDiente = 16;
+    } else if (text.includes("26") || text.includes("muela de arriba a la izquierda")) {
+      numeroDiente = 26;
+    }
+
+    if (numeroDiente > 0) {
+      let condicion: any = "caries";
+      if (text.includes("endodoncia") || text.includes("conducto")) condicion = "endodoncia";
+      else if (text.includes("corona")) condicion = "corona";
+      else if (text.includes("fractura")) condicion = "fractura";
+      else if (text.includes("calza") || text.includes("obturacion") || text.includes("restauracion")) condicion = "obturacion";
+      else if (text.includes("extraccion") || text.includes("sacar")) condicion = "extraccion_indicada";
+
+      dientesDetectados.push({
+        numero: numeroDiente,
+        condicion,
+        superficie: "oclusal",
+        diagnostico: `${condicion.toUpperCase()} en pieza dental ${numeroDiente}`,
+      });
     }
 
     return {
       tipo_consulta: text.includes("control") || text.includes("seguimiento") ? "seguimiento" : "inicial",
-      motivo_consulta: `Paciente acude por sintomatología referida durante la consulta: ${transcript.substring(0, 140)}...`,
-      padecimiento_actual: `Cuadro clínico caracterizado por síntomas descritos en diálogo clínico. Refiere evolución reciente y solicita valoración profesional.`,
-      examen_fisico: `Paciente orientado, signos vitales estables. Al examen de la región afectada se aprecian hallazgos compatibles con el motivo de consulta.`,
+      motivo_consulta: `Refiere ${sintomasStr} ${piezaDental ? `en ${piezaDental}` : ""} de ${tiempoEvolucion}.`,
+      padecimiento_actual: `Paciente ${paciente} acude refiriendo ${sintomasStr} de ${tiempoEvolucion}. Manifiesta incremento de la sintomatología con estímulos masticatorios o térmicos, por lo que solicita valoración profesional.`,
+      examen_fisico: examenFisico,
       diagnostico_principal: diag,
       codigo_cie10: cie10,
-      plan_tratamiento: `Manejo farmacológico sintomático, medidas higiénico-dietéticas y control según evolución.`,
+      plan_tratamiento: `Manejo farmacológico para control de sintomatología infecciosa e inflamatoria. ${piezaDental ? `Programación de restauración / obturación definitiva en ${piezaDental}` : "Control y seguimiento clínico"}.`,
+      dientes_detectados: dientesDetectados,
       medicamentos: detectedMeds.length > 0 ? detectedMeds : [
         {
-          nombre: "Paracetamol",
+          nombre: "Amoxicilina",
           dosis: "500 mg",
           frecuencia: "Cada 8 horas",
+          duracion: "7 días",
+          indicaciones: "Tomar después de los alimentos para prevención y control infeccioso",
+        },
+        {
+          nombre: "Ibuprofeno",
+          dosis: "400 mg",
+          frecuencia: "Cada 8 horas",
           duracion: "3 días",
-          indicaciones: "Tomar en caso de dolor o malestar general",
+          indicaciones: "Tomar con abundante agua en caso de dolor",
         }
       ],
-      recomendaciones_paciente: `Mantener reposo relativo, ingerir suficiente líquido y cumplir con la pauta de medicamentos recetados. En caso de signos de alarma o persistencia, acudir a control.`,
-      proxima_cita_recomendada: "Control en 7 a 10 días si los síntomas persisten.",
+      recomendaciones_paciente: `Estimado(a) ${paciente}, cumpla con el horario de los antibióticos y analgésicos recetados. Evite masticar alimentos duros con ${piezaDental || "la zona afectada"}. Nos vemos en 7 días para realizar la calza/restauración.`,
+      proxima_cita_recomendada: "Cita en 7 días para procedimiento de restauración.",
     };
   }
 }

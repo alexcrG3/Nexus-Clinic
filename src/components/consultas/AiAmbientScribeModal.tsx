@@ -29,6 +29,7 @@ import {
   Clock,
   Send,
   MessageCircle,
+  Smile,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AiScribeEngine } from "@/services/aiScribe/scribeEngine";
@@ -477,6 +478,27 @@ export const AiAmbientScribeModal: React.FC<AiAmbientScribeModalProps> = ({
                     ))}
                   </div>
                 </div>
+
+                {/* Dientes Detectados para Odontograma */}
+                {extractionResult.dientes_detectados && extractionResult.dientes_detectados.length > 0 && (
+                  <div className="bg-sky-500/10 border border-sky-500/30 rounded-lg p-3 space-y-1.5 md:col-span-2 text-xs">
+                    <span className="font-bold text-sky-700 dark:text-sky-300 block text-[11px] uppercase flex items-center gap-1.5">
+                      <Smile className="size-3.5 text-sky-500" />
+                      Piezas para Marcar en Odontograma ({extractionResult.dientes_detectados.length})
+                    </span>
+                    <div className="flex flex-wrap gap-2 pt-0.5">
+                      {extractionResult.dientes_detectados.map((d, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 bg-background border border-sky-500/40 rounded-md px-2.5 py-1 text-xs shadow-sm">
+                          <span className="font-black text-primary">Pieza {d.numero}</span>
+                          <span className="text-muted-foreground">•</span>
+                          <Badge variant="outline" className="text-[10px] uppercase font-bold bg-rose-500/10 text-rose-600 border-rose-500/30">
+                            {d.condicion}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Resumen para el paciente */}
                 {extractionResult.recomendaciones_paciente && (

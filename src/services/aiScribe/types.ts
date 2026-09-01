@@ -17,6 +17,13 @@ export interface SignosVitalesExtraidos {
   talla?: string;
 }
 
+export interface DienteDetectado {
+  numero: number;
+  condicion: "caries" | "obturacion" | "corona" | "ausente" | "endodoncia" | "implante" | "fractura" | "sellante" | "extraccion_indicada";
+  superficie?: string;
+  diagnostico?: string;
+}
+
 export interface ClinicalAiExtraction {
   tipo_consulta?: "inicial" | "seguimiento";
   motivo_consulta: string;
@@ -29,4 +36,5 @@ export interface ClinicalAiExtraction {
   medicamentos: MedicamentoRecetado[];
   recomendaciones_paciente: string;
   proxima_cita_recomendada?: string;
+  dientes_detectados?: DienteDetectado[];
 }
