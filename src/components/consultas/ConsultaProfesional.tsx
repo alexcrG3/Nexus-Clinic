@@ -13,7 +13,8 @@ import {
   X,
   ChevronUp,
   Search,
-  Trash2
+  Trash2,
+  Sparkles
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -21,6 +22,8 @@ import { cn } from "@/lib/utils";
 import { useMedicamentosCatalogo } from "@/hooks/useMedicamentosCatalogo";
 import { RecetaActions } from "./RecetaActions";
 import { VoiceDictationButton } from "@/components/ui/VoiceDictationButton";
+import { AiAmbientScribeModal } from "./AiAmbientScribeModal";
+import { ClinicalAiExtraction } from "@/services/aiScribe/types";
 
 interface SignosVitales {
   presion_sistolica?: number;
@@ -328,8 +331,65 @@ export const ConsultaProfesional = ({
     }
   };
 
+  // Modal de Copiloto IA (Estilo Heidi Health)
+  const [showAiScribeModal, setShowAiScribeModal] = useState(false);
+
+  const handleApplyAiExtraction = (ext: ClinicalAiExtraction) => {
+    if (ext.tipo_consulta) setTipoConsulta(ext.tipo_consulta);
+    if (ext.motivo_consulta) setMotivoConsulta(ext.motivo_consulta);
+    if (ext.padecimiento_actual) setPadecimientoActual(ext.padecimiento_actual);
+    if (ext.examen_fisico) setExamenFisico(ext.examen_fisico);
+    if (ext.diagnostico_principal) setImpresionDiagnostica(ext.diagnostico_principal);
+    if (ext.codigo_cie10) setCodigoCie10(ext.codigo_cie10);
+    if (ext.recomendaciones_paciente) setOtrasIndicaciones(ext.recomendaciones_paciente);
+    if (ext.proxima_cita_recomendada) setMotivoProximaCita(ext.proxima_cita_recomendada);
+
+    if (ext.signos_vitales) {
+      if (ext.signos_vitales.presion_sistolica) setPresionSistolica(ext.signos_vitales.presion_sistolica);
+      if (ext.signos_vitales.presion_diastolica) setPresionDiastolica(ext.signos_vitales.presion_diastolica);
+      if (ext.signos_vitales.frecuencia_cardiaca) setFrecuenciaCardiaca(ext.signos_vitales.frecuencia_cardiaca);
+      if (ext.signos_vitales.saturacion_oxigeno) setSaturacionOxigeno(ext.signos_vitales.saturacion_oxigeno);
+      if (ext.signos_vitales.temperatura) setTemperatura(ext.signos_vitales.temperatura);
+      if (ext.signos_vitales.peso) setPeso(ext.signos_vitales.peso);
+      if (ext.signos_vitales.talla) setTalla(ext.signos_vitales.talla);
+    }
+
+    if (ext.medicamentos && ext.medicamentos.length > 0) {
+      setMedicamentos(ext.medicamentos);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Banner de Copiloto IA (Estilo Heidi Health) */}
+      <div className="bg-gradient-to-r from-primary/10 via-sky-500/10 to-indigo-500/10 border border-primary/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-gradient-to-tr from-primary to-sky-500 text-white flex items-center justify-center shadow-md shrink-0">
+            <Sparkles className="size-5" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-foreground flex items-center gap-2">
+              <span>Copiloto Clínico IA (Auto-llenado Inteligente)</span>
+              <Badge variant="outline" className="text-[9px] font-bold border-primary/40 text-primary bg-primary/10">
+                ✨ Modo Heidi AI
+              </Badge>
+            </h4>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Escucha el diálogo médico-paciente en vivo y auto-genera el motivo, examen físico, CIE-10 y receta médica completa.
+            </p>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          onClick={() => setShowAiScribeModal(true)}
+          className="gap-2 bg-gradient-to-r from-primary via-indigo-600 to-sky-600 hover:from-primary/90 hover:to-sky-600/90 text-white font-bold text-xs rounded-xl shadow-md h-9 px-4 shrink-0"
+        >
+          <Sparkles className="size-3.5 text-amber-300" />
+          <span>Iniciar Escucha con IA</span>
+        </Button>
+      </div>
+
       {/* Motivo de consulta */}
       <CollapsibleSection title="Motivo de consulta">
         <div className="space-y-4">
@@ -790,6 +850,15 @@ export const ConsultaProfesional = ({
           )}
         </Button>
       </div>
+
+      {/* Modal de Copiloto IA (Estilo Heidi Health) */}
+      <AiAmbientScribeModal
+        open={showAiScribeModal}
+        onOpenChange={setShowAiScribeModal}
+        pacienteNombre={pacienteNombre}
+        especialidad="Medicina General"
+        onApplyExtraction={handleApplyAiExtraction}
+      />
     </div>
   );
 };

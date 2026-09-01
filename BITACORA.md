@@ -4,6 +4,23 @@
 
 ---
 
+## 📅 Jornada: 31 de Agosto de 2026
+
+---
+
+### 🕒 [20:30 - 20:36] — Implementación: Copiloto Clínico con IA (Estilo Heidi Health)
+* **Objetivo / Requerimiento:**  
+  Permitir que el médico active una escucha ambiental durante la consulta en vivo. La IA procesa el diálogo médico-paciente y auto-rellena en formato SOAP el motivo de consulta, examen físico, diagnóstico CIE-10, prescripción de medicamentos con posología completa y resumen claro para el paciente.
+* **Componentes Creados / Integrados:**  
+  1. `src/services/aiScribe/types.ts`: Tipado TypeScript para notas clínicas estructuradas, signos vitales y prescripción de fármacos.
+  2. `src/services/aiScribe/scribeEngine.ts`: Motor de extracción clínica con prompts avanzados para GPT-4o y extractor clínico heurístico de respaldo sin requerir clave obligatoria.
+  3. `src/components/consultas/AiAmbientScribeModal.tsx`: Modal interactivo con reconocimiento de voz continuo en tiempo real, cronómetro, transcripción editable, visor estructurado y botón *"Aplicar al Expediente y Receta"*.
+  4. `src/components/consultas/ConsultaProfesional.tsx`: Banner interactivo en la cabecera e inyección automática en todos los estados del expediente y la receta médica.
+* **Garantía de Cero Afectación:**  
+  La integración se conecta exclusivamente a los `useState` del formulario existente sin modificar esquemas de base de datos ni romper las validaciones o flujos preexistentes.
+
+---
+
 ## 📅 Jornada: 29 de Agosto de 2026
 
 ---
