@@ -167,41 +167,38 @@ const DienteInteractivo = ({
             onClick={onClick}
             disabled={readOnly}
             className={cn(
-              "relative flex flex-col items-center transition-all duration-150 group p-1",
-              "hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded-lg",
-              isSelected && "scale-105 ring-2 ring-primary ring-offset-1 bg-primary/5",
+              "relative flex flex-col items-center transition-all duration-150 group p-0.5 sm:p-1 shrink-0 rounded-lg",
+              "hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1",
+              isSelected && "scale-105 ring-2 ring-primary ring-offset-1 bg-primary/10 shadow-sm",
               readOnly && "cursor-default hover:scale-100",
               isAusente && "opacity-40"
             )}
           >
             {/* Diente anatómico SVG */}
-            <div className={cn(
-              "relative",
-              !isSuperior && "rotate-180"
-            )}>
+            <div className={cn("relative", !isSuperior && "rotate-180")}>
               <ToothSVG
                 numero={numero}
                 condicion={data?.condicion}
                 superficies={data?.superficies as Record<string, string> | undefined}
-                width={toothType === "molar" ? 32 : toothType === "premolar" ? 28 : 24}
-                height={55}
+                width={toothType === "molar" ? 28 : toothType === "premolar" ? 24 : 20}
+                height={50}
                 isSelected={isSelected}
               />
             </div>
             
             {/* Indicador de superficies con diagrama pequeño */}
-            <div className="w-8 h-8 mt-1">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 mt-0.5">
               <ToothDiagram 
                 data={data}
                 isSuperior={isSuperior}
-                size={32}
+                size={26}
               />
             </div>
             
             {/* Número del diente */}
             <span className={cn(
-              "text-[10px] font-bold mt-0.5 transition-colors",
-              isSelected ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+              "text-[10px] sm:text-xs font-bold mt-0.5 transition-colors",
+              isSelected ? "text-primary font-black" : "text-muted-foreground group-hover:text-foreground"
             )}>
               {numero}
             </span>
@@ -219,9 +216,9 @@ const DienteInteractivo = ({
                 <span>{ESTADOS_DENTALES[data.condicion]?.label}</span>
               </div>
             )}
-            {data?.superficies && Object.keys(data.superficies).length > 0 && (
-              <p className="text-muted-foreground">
-                {Object.keys(data.superficies).length} superficie(s) marcada(s)
+            {data?.notas && (
+              <p className="text-xs text-muted-foreground border-t pt-1">
+                {data.notas}
               </p>
             )}
             {!readOnly && <p className="text-xs text-muted-foreground italic">Clic para editar</p>}
@@ -236,7 +233,7 @@ const DienteInteractivo = ({
 const ToothDiagram = ({ 
   data, 
   isSuperior, 
-  size = 32 
+  size = 26 
 }: { 
   data?: DienteData; 
   isSuperior: boolean;
@@ -249,7 +246,6 @@ const ToothDiagram = ({
   };
 
   const superficieBajo = isSuperior ? "palatina" : "lingual";
-  const scale = size / 44;
 
   return (
     <svg width={size} height={size} viewBox="0 0 44 44" className="drop-shadow-sm">
@@ -320,9 +316,9 @@ const PanelDiente = ({
   readOnly = false,
 }: {
   dienteNumero: number;
-  dienteData: DienteData;
-  historial: HistorialEntry[];
-  tratamientosDiente: Tratamiento[];
+  dienteData?: DienteData;
+  historial?: HistorialEntry[];
+  tratamientosDiente?: Tratamiento[];
   onUpdateCondicion: (condicion: EstadoDental) => void;
   onUpdateSuperficie: (superficie: Superficie, condicion: EstadoDental) => void;
   onUpdateNotas: (notas: string) => void;
@@ -336,16 +332,16 @@ const PanelDiente = ({
   const tratamientosCompletados = tratamientosDiente.filter(t => t.estado === "completado");
 
   return (
-    <div className="w-80 border-l bg-card flex flex-col h-full">
+    <div className="w-full xl:w-84 2xl:w-96 border-t xl:border-t-0 xl:border-l bg-card flex flex-col shrink-0 min-h-[460px] max-h-[700px]">
       {/* Header */}
       <div className="p-4 border-b bg-muted/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <span className="font-bold text-primary">{dienteNumero}</span>
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm">
+              <span className="font-black text-primary text-base">{dienteNumero}</span>
             </div>
             <div>
-              <h3 className="font-semibold">Diente {dienteNumero}</h3>
+              <h3 className="font-bold text-foreground">Diente {dienteNumero}</h3>
               <p className="text-xs text-muted-foreground">
                 {isSuperior ? "Arcada Superior" : "Arcada Inferior"}
               </p>
@@ -358,12 +354,12 @@ const PanelDiente = ({
 
         {/* Estado actual */}
         {dienteData?.condicion && (
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2 bg-background border rounded-lg px-2.5 py-1.5">
             <div 
-              className="w-4 h-4 rounded-full" 
+              className="w-3.5 h-3.5 rounded-full shrink-0" 
               style={{ backgroundColor: ESTADOS_DENTALES[dienteData.condicion]?.color }}
             />
-            <span className="text-sm font-medium">
+            <span className="text-xs font-bold">
               {ESTADOS_DENTALES[dienteData.condicion]?.label}
             </span>
           </div>
@@ -371,13 +367,13 @@ const PanelDiente = ({
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b">
+      <div className="flex border-b bg-muted/10">
         <button
           onClick={() => setActiveTab("estado")}
           className={cn(
-            "flex-1 py-2 text-sm font-medium transition-colors border-b-2",
+            "flex-1 py-2.5 text-xs font-bold transition-colors border-b-2",
             activeTab === "estado" 
-              ? "border-primary text-primary" 
+              ? "border-primary text-primary bg-background" 
               : "border-transparent text-muted-foreground hover:text-foreground"
           )}
         >
@@ -386,9 +382,9 @@ const PanelDiente = ({
         <button
           onClick={() => setActiveTab("superficies")}
           className={cn(
-            "flex-1 py-2 text-sm font-medium transition-colors border-b-2",
+            "flex-1 py-2.5 text-xs font-bold transition-colors border-b-2",
             activeTab === "superficies" 
-              ? "border-primary text-primary" 
+              ? "border-primary text-primary bg-background" 
               : "border-transparent text-muted-foreground hover:text-foreground"
           )}
         >
@@ -397,15 +393,15 @@ const PanelDiente = ({
         <button
           onClick={() => setActiveTab("historial")}
           className={cn(
-            "flex-1 py-2 text-sm font-medium transition-colors border-b-2 relative",
+            "flex-1 py-2.5 text-xs font-bold transition-colors border-b-2 relative",
             activeTab === "historial" 
-              ? "border-primary text-primary" 
+              ? "border-primary text-primary bg-background" 
               : "border-transparent text-muted-foreground hover:text-foreground"
           )}
         >
           Historial
           {historial.length > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
+            <span className="absolute top-1.5 right-2 w-3.5 h-3.5 bg-primary text-primary-foreground text-[9px] font-bold rounded-full flex items-center justify-center">
               {historial.length}
             </span>
           )}
@@ -419,25 +415,25 @@ const PanelDiente = ({
             <>
               {/* Acciones rápidas - Estado general */}
               <div>
-                <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                  <Stethoscope className="h-4 w-4" />
+                <h4 className="text-xs font-bold text-foreground mb-2.5 flex items-center gap-1.5">
+                  <Stethoscope className="h-3.5 w-3.5 text-primary" />
                   Estado General
                 </h4>
                 <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(ESTADOS_DENTALES).map(([key, { label, color, description }]) => (
+                  {Object.entries(ESTADOS_DENTALES).map(([key, { label, color }]) => (
                     <button
                       key={key}
                       disabled={readOnly}
                       onClick={() => onUpdateCondicion(key as EstadoDental)}
                       className={cn(
-                        "flex items-center gap-2 p-2 rounded-lg border text-left transition-all text-sm",
+                        "flex items-center gap-2 p-2 rounded-xl border text-left transition-all text-xs font-medium bg-background",
                         "hover:shadow-md hover:border-primary/50",
-                        dienteData?.condicion === key && "ring-2 ring-primary bg-primary/5",
+                        dienteData?.condicion === key && "ring-2 ring-primary bg-primary/10 border-primary font-bold",
                         readOnly && "opacity-50 cursor-not-allowed"
                       )}
                     >
                       <div 
-                        className="w-4 h-4 rounded-full flex-shrink-0" 
+                        className="w-3.5 h-3.5 rounded-full flex-shrink-0" 
                         style={{ backgroundColor: color }}
                       />
                       <span className="truncate">{label}</span>
@@ -448,158 +444,118 @@ const PanelDiente = ({
 
               <Separator />
 
-              {/* Tratamientos del diente */}
-              {(tratamientosPendientes.length > 0 || tratamientosCompletados.length > 0) && (
-                <div>
-                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Tratamientos
-                  </h4>
-                  
-                  {tratamientosPendientes.length > 0 && (
-                    <div className="mb-3">
-                      <p className="text-xs font-medium text-warning mb-2 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        Pendientes ({tratamientosPendientes.length})
-                      </p>
-                      <div className="space-y-1">
-                        {tratamientosPendientes.map((t) => (
-                          <div key={t.id} className="text-sm p-2 bg-warning/10 rounded border border-warning/20">
-                            {t.tratamiento}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {tratamientosCompletados.length > 0 && (
-                    <div>
-                      <p className="text-xs font-medium text-success mb-2 flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Completados ({tratamientosCompletados.length})
-                      </p>
-                      <div className="space-y-1">
-                        {tratamientosCompletados.slice(0, 3).map((t) => (
-                          <div key={t.id} className="text-sm p-2 bg-success/10 rounded border border-success/20">
-                            {t.tratamiento}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <Separator />
-
-              {/* Notas */}
+              {/* Notas del diente */}
               <div>
-                <h4 className="text-sm font-medium mb-2">Notas clínicas</h4>
+                <h4 className="text-xs font-bold text-foreground mb-2 flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5 text-primary" />
+                  Notas clínicas
+                </h4>
                 <Textarea
+                  placeholder="Observaciones clínicas para este diente..."
                   value={dienteData?.notas || ""}
                   onChange={(e) => onUpdateNotas(e.target.value)}
-                  placeholder="Observaciones..."
-                  rows={3}
                   disabled={readOnly}
-                  className="text-sm"
+                  className="min-h-[80px] text-xs resize-none rounded-xl"
                 />
               </div>
+
+              {/* Tratamientos asociados */}
+              {tratamientosDiente.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-foreground mb-2 flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-primary" />
+                    Tratamientos ({tratamientosDiente.length})
+                  </h4>
+                  <div className="space-y-1.5">
+                    {tratamientosDiente.map((t) => (
+                      <div 
+                        key={t.id} 
+                        className={cn(
+                          "p-2 rounded-lg border text-xs flex items-center justify-between",
+                          t.estado === "completado" ? "bg-muted/40 border-muted" : "bg-warning/10 border-warning/30"
+                        )}
+                      >
+                        <div>
+                          <p className="font-semibold text-foreground">{t.tratamiento}</p>
+                          {t.superficie && (
+                            <p className="text-[10px] text-muted-foreground">
+                              Superficie: {t.superficie}
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant={t.estado === "completado" ? "secondary" : "outline"} className="text-[10px]">
+                          {t.estado}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
           {activeTab === "superficies" && (
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Selecciona una superficie y asigna un estado en 2 clics.
-              </p>
-              
-              {/* Vista previa del diente */}
-              <div className="flex justify-center my-4">
-                <svg width="120" height="120" viewBox="0 0 44 44">
-                  <rect x="14" y="14" width="16" height="16" fill={dienteData?.superficies?.oclusal ? ESTADOS_DENTALES[dienteData.superficies.oclusal]?.color : "hsl(var(--muted))"} stroke="hsl(var(--border))" strokeWidth="1.5" rx="2" />
-                  <path d="M14,14 L30,14 L44,0 L0,0 Z" fill={dienteData?.superficies?.vestibular ? ESTADOS_DENTALES[dienteData.superficies.vestibular]?.color : "hsl(var(--muted))"} stroke="hsl(var(--border))" strokeWidth="1.5" />
-                  <path d="M14,30 L30,30 L44,44 L0,44 Z" fill={dienteData?.superficies?.[isSuperior ? "palatina" : "lingual"] ? ESTADOS_DENTALES[dienteData.superficies[isSuperior ? "palatina" : "lingual"]!]?.color : "hsl(var(--muted))"} stroke="hsl(var(--border))" strokeWidth="1.5" />
-                  <path d="M0,0 L14,14 L14,30 L0,44 Z" fill={dienteData?.superficies?.mesial ? ESTADOS_DENTALES[dienteData.superficies.mesial]?.color : "hsl(var(--muted))"} stroke="hsl(var(--border))" strokeWidth="1.5" />
-                  <path d="M44,0 L30,14 L30,30 L44,44 Z" fill={dienteData?.superficies?.distal ? ESTADOS_DENTALES[dienteData.superficies.distal]?.color : "hsl(var(--muted))"} stroke="hsl(var(--border))" strokeWidth="1.5" />
-                </svg>
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-xs font-bold text-foreground mb-1">Superficies Dentales</h4>
+                <p className="text-[11px] text-muted-foreground mb-3">
+                  Marca el estado específico para cada cara del diente
+                </p>
+                <div className="flex justify-center p-3 bg-muted/20 rounded-xl border">
+                  <ToothDiagram data={dienteData} isSuperior={isSuperior} size={90} />
+                </div>
               </div>
 
-              {/* Lista de superficies */}
-              {(["oclusal", "vestibular", isSuperior ? "palatina" : "lingual", "mesial", "distal"] as Superficie[]).map((sup) => (
-                <div key={sup} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium capitalize">
-                      {sup === "oclusal" ? "Oclusal (O)" : 
-                       sup === "vestibular" ? "Vestibular (V)" :
-                       sup === "palatina" ? "Palatina (P)" :
-                       sup === "lingual" ? "Lingual (L)" :
-                       sup === "mesial" ? "Mesial (M)" : "Distal (D)"}
-                    </span>
-                    {dienteData?.superficies?.[sup] && (
-                      <Badge 
-                        variant="outline" 
-                        className="text-xs"
-                        style={{ borderColor: ESTADOS_DENTALES[dienteData.superficies[sup]!]?.color }}
-                      >
-                        {ESTADOS_DENTALES[dienteData.superficies[sup]!]?.label}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex gap-1 flex-wrap">
-                    {Object.entries(ESTADOS_DENTALES).slice(0, 6).map(([key, { color }]) => (
-                      <button
-                        key={key}
+              <div className="space-y-2">
+                {SUPERFICIES.map((sup) => {
+                  const label = sup === "palatina" && !isSuperior ? "lingual" : sup;
+                  const currentCondicion = dienteData?.superficies?.[sup];
+                  return (
+                    <div key={sup} className="flex items-center justify-between p-2 rounded-lg border bg-background text-xs">
+                      <span className="capitalize font-semibold text-foreground">{label}</span>
+                      <select 
                         disabled={readOnly}
-                        onClick={() => onUpdateSuperficie(sup, key as EstadoDental)}
-                        className={cn(
-                          "w-6 h-6 rounded-full border-2 transition-all hover:scale-110",
-                          dienteData?.superficies?.[sup] === key ? "ring-2 ring-offset-2 ring-primary" : "border-transparent",
-                          readOnly && "opacity-50 cursor-not-allowed"
-                        )}
-                        style={{ backgroundColor: color }}
-                        title={ESTADOS_DENTALES[key as EstadoDental].label}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
+                        value={currentCondicion || ""}
+                        onChange={(e) => onUpdateSuperficie(sup, e.target.value as EstadoDental)}
+                        className="text-xs border rounded-lg px-2 py-1 bg-background"
+                      >
+                        <option value="">-- Sin patología --</option>
+                        {Object.entries(ESTADOS_DENTALES).map(([k, v]) => (
+                          <option key={k} value={k}>
+                            {v.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
           {activeTab === "historial" && (
-            <div>
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-foreground">Historial de Cambios</h4>
               {historial.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Sin historial registrado</p>
+                <div className="text-center py-6 text-muted-foreground text-xs">
+                  <History className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                  <p>Sin registros en el historial para esta pieza</p>
                 </div>
               ) : (
-                <div className="relative">
-                  <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-border" />
-                  <div className="space-y-4">
-                    {historial.map((entry, i) => (
-                      <div key={i} className="relative pl-6">
-                        <div className="absolute left-0 top-1 w-4 h-4 rounded-full bg-primary/20 border-2 border-primary" />
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <p className="text-sm font-medium">{entry.accion}</p>
-                          {entry.superficie && (
-                            <p className="text-xs text-muted-foreground">
-                              Superficie: {entry.superficie}
-                            </p>
-                          )}
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                            <Clock className="h-3 w-3" />
-                            {format(new Date(entry.fecha), "d MMM yyyy, HH:mm", { locale: es })}
-                          </p>
-                          {entry.profesional && (
-                            <p className="text-xs text-muted-foreground">
-                              Por: {entry.profesional}
-                            </p>
-                          )}
-                        </div>
+                <div className="space-y-2">
+                  {historial.map((h, i) => (
+                    <div key={i} className="p-2 rounded-lg border bg-background text-xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-foreground">{h.accion}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {format(new Date(h.fecha), "dd/MM/yyyy", { locale: es })}
+                        </span>
                       </div>
-                    ))}
-                  </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Estado: {h.estadoNuevo}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -670,71 +626,80 @@ export const OdontogramaProfesional = ({
   const selectedDienteData = selectedDiente ? data[selectedDiente.toString()] || {} : {};
   const selectedHistorial = selectedDiente ? historial[selectedDiente.toString()] || [] : [];
   const tratamientosDiente = selectedDiente 
-    ? tratamientos.filter(t => t.diente_numero === selectedDiente)
+    ? tratamientos.filter((t) => t.diente_numero === selectedDiente)
     : [];
 
   // Estadísticas rápidas
   const totalDientes = [...arcadaSuperior, ...arcadaInferior].length;
-  const dientesConPatologia = Object.values(data).filter(d => d.condicion && d.condicion !== "sano").length;
-  const dientesAusentes = Object.values(data).filter(d => d.condicion === "ausente").length;
-  const tratamientosPendientes = tratamientos.filter(t => t.estado === "pendiente").length;
+  const dientesConPatologia = Object.values(data).filter((d) => d.condicion && d.condicion !== "sano").length;
+  const dientesAusentes = Object.values(data).filter((d) => d.condicion === "ausente").length;
+  const tratamientosPendientes = tratamientos.filter((t) => t.estado === "pendiente").length;
 
   return (
-    <div className="flex h-[700px] border rounded-xl overflow-hidden bg-card shadow-sm">
+    <div className="flex flex-col xl:flex-row min-h-[580px] border rounded-2xl overflow-hidden bg-card shadow-sm">
       {/* Panel principal del odontograma */}
-      <div className="flex-1 flex flex-col">
-        <Card className="border-0 shadow-none h-full">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
+      <div className="flex-1 flex flex-col min-w-0">
+        <Card className="border-0 shadow-none h-full flex flex-col">
+          <CardHeader className="p-3 sm:p-4 pb-2 border-b">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-xl">Odontograma</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Selecciona un diente para ver detalles y editar
+                <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+                  <span>Odontograma Dental</span>
+                  {selectedDiente && (
+                    <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+                      Pieza {selectedDiente} seleccionada
+                    </Badge>
+                  )}
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Haz clic en cualquier diente para ver y marcar patologías, superficies y notas
                 </p>
               </div>
               
               {/* Estadísticas mini */}
-              <div className="flex gap-4">
-                <div className="text-center">
-                  <p className="text-2xl font-bold">{totalDientes - dientesAusentes}</p>
-                  <p className="text-xs text-muted-foreground">Presentes</p>
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <div className="text-center px-2.5 py-1 bg-muted/40 rounded-lg border text-xs">
+                  <p className="font-black text-sm text-foreground">{totalDientes - dientesAusentes}</p>
+                  <p className="text-[10px] text-muted-foreground">Presentes</p>
                 </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-destructive">{dientesConPatologia}</p>
-                  <p className="text-xs text-muted-foreground">Con patología</p>
+                <div className="text-center px-2.5 py-1 bg-destructive/10 rounded-lg border border-destructive/20 text-xs">
+                  <p className="font-black text-sm text-destructive">{dientesConPatologia}</p>
+                  <p className="text-[10px] text-destructive">Con patología</p>
                 </div>
                 {tratamientosPendientes > 0 && (
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-warning">{tratamientosPendientes}</p>
-                    <p className="text-xs text-muted-foreground">Tx pendientes</p>
+                  <div className="text-center px-2.5 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20 text-xs">
+                    <p className="font-black text-sm text-amber-600 dark:text-amber-400">{tratamientosPendientes}</p>
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400">Tx pendientes</p>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Leyenda de colores */}
-            <div className="flex flex-wrap gap-2 mt-4">
+            <div className="flex flex-wrap gap-1.5 pt-2">
               {Object.entries(ESTADOS_DENTALES).map(([key, { label, color }]) => (
                 <Badge
                   key={key}
                   variant="outline"
-                  className="text-xs gap-1.5"
+                  className="text-[10px] sm:text-xs gap-1 py-0.5 px-2 bg-background/80"
                 >
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-                  {label}
+                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                  <span>{label}</span>
                 </Badge>
               ))}
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 flex items-center justify-center overflow-x-auto">
-            <div className="space-y-4 min-w-fit px-4">
+          <CardContent className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 overflow-x-auto w-full">
+            <div className="w-full min-w-max mx-auto space-y-4 py-2 flex flex-col items-center">
               {/* Arcada Superior */}
-              <div className="text-center">
-                <p className="text-sm font-semibold text-muted-foreground mb-2 tracking-wide uppercase">
-                  Arcada Superior
-                </p>
-                <div className="flex justify-center items-end gap-0.5">
+              <div className="text-center w-full">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-muted/30 rounded-full mb-2">
+                  <span className="text-[11px] font-bold text-muted-foreground tracking-wider uppercase">
+                    Arcada Superior
+                  </span>
+                </div>
+                <div className="flex justify-center items-end gap-0.5 sm:gap-1 p-1.5 bg-muted/10 rounded-2xl border border-border/40">
                   {arcadaSuperior.map((num) => (
                     <DienteInteractivo
                       key={num}
@@ -749,18 +714,22 @@ export const OdontogramaProfesional = ({
               </div>
 
               {/* Línea media */}
-              <div className="flex items-center gap-4 py-1">
-                <div className="flex-1 border-t-2 border-dashed border-muted-foreground/30" />
-                <span className="text-[10px] font-medium text-muted-foreground px-2 bg-card">LÍNEA MEDIA</span>
-                <div className="flex-1 border-t-2 border-dashed border-muted-foreground/30" />
+              <div className="w-full flex items-center justify-center gap-3 py-1">
+                <div className="w-24 sm:w-40 border-t-2 border-dashed border-muted-foreground/30" />
+                <span className="text-[10px] font-black tracking-widest text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+                  LÍNEA MEDIA
+                </span>
+                <div className="w-24 sm:w-40 border-t-2 border-dashed border-muted-foreground/30" />
               </div>
 
               {/* Arcada Inferior */}
-              <div className="text-center">
-                <p className="text-sm font-semibold text-muted-foreground mb-2 tracking-wide uppercase">
-                  Arcada Inferior
-                </p>
-                <div className="flex justify-center items-start gap-0.5">
+              <div className="text-center w-full">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-muted/30 rounded-full mb-2">
+                  <span className="text-[11px] font-bold text-muted-foreground tracking-wider uppercase">
+                    Arcada Inferior
+                  </span>
+                </div>
+                <div className="flex justify-center items-start gap-0.5 sm:gap-1 p-1.5 bg-muted/10 rounded-2xl border border-border/40">
                   {arcadaInferior.map((num) => (
                     <DienteInteractivo
                       key={num}
@@ -778,8 +747,8 @@ export const OdontogramaProfesional = ({
         </Card>
       </div>
 
-      {/* Panel lateral contextual */}
-      {selectedDiente && (
+      {/* Panel lateral / inferior contextual */}
+      {selectedDiente ? (
         <PanelDiente
           dienteNumero={selectedDiente}
           dienteData={selectedDienteData}
@@ -791,17 +760,15 @@ export const OdontogramaProfesional = ({
           onClose={() => setSelectedDiente(null)}
           readOnly={readOnly}
         />
-      )}
-
-      {/* Placeholder cuando no hay diente seleccionado */}
-      {!selectedDiente && (
-        <div className="w-80 border-l bg-muted/20 flex items-center justify-center">
-          <div className="text-center p-6">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-              <ChevronRight className="h-8 w-8 text-muted-foreground" />
+      ) : (
+        <div className="w-full xl:w-84 2xl:w-96 border-t xl:border-t-0 xl:border-l bg-muted/10 flex items-center justify-center p-6 shrink-0">
+          <div className="text-center p-4">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
+              <ChevronRight className="h-6 w-6" />
             </div>
-            <p className="text-muted-foreground">
-              Selecciona un diente para ver su información detallada
+            <h4 className="font-bold text-sm text-foreground">Detalle del Diente</h4>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[200px] mx-auto">
+              Haz clic en cualquier pieza dental para marcar su estado patológico, superficies o notas.
             </p>
           </div>
         </div>

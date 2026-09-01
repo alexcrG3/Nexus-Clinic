@@ -8,6 +8,21 @@
 
 ---
 
+### 🕒 [21:39 - 21:42] — Incidencia: Visibilidad Incompleta del Odontograma y Panel de Marcado en Pantallas Estándar / Móviles
+* **Síntoma Reportado:**  
+  Tanto en orientación vertical como horizontal, los dientes del cuadrante derecho (23 a 28 y 33 a 38) quedaban cortados y el panel lateral para marcar superficies/estados desplazaba el odontograma fuera de la pantalla.
+* **Causa Raíz:**  
+  1. `OdontogramaProfesional.tsx` utilizaba un contenedor rígido `flex h-[700px] overflow-hidden` con una barra lateral fija `w-80` / `w-96`, dejando apenas 280px para renderizar 16 piezas dentales simultáneamente.
+  2. Los dientes SVG tenían anchos fijos de 32px con diagramas de 32px, requiriendo más de 580px de ancho exclusivo sin adaptación responsive.
+* **Solución Aplicada y Blindaje:**  
+  1. `OdontogramaProfesional.tsx`: Se transformó la estructura a un diseño completamente adaptable `flex-col xl:flex-row min-h-[580px]`, donde en pantallas estándar el odontograma utiliza todo el ancho y el panel de edición se ubica de forma natural sin recortar la arcada dental.
+  2. `DienteInteractivo`: Se optimizó la escala de las piezas anatómicas (20px-28px) y diagramas (26px) con `gap-0.5 sm:gap-1`, permitiendo que las 16 piezas de la arcada superior e inferior se visualicen completas de un solo vistazo.
+  3. `CardContent`: Se agregó un contenedor scroll horizontal fluido con indicador visual para garantizar accesibilidad en pantallas táctiles o ventanas divididas.
+* **Lección / Acción Preventiva:**  
+  Los componentes odontológicos y de esquemas gráficos con alta densidad de elementos deben ser fluidos (`flex-col xl:flex-row`) y dimensionarse proporcionalmente para evitar truncamientos en pantallas compactas.
+
+---
+
 ### 🕒 [21:31 - 21:34] — Incidencia Crítica: Voz Masculina al Seleccionar Perfil Femenino (Dra. Valeria / Femenina 1)
 * **Síntoma Reportado:**  
   El usuario tenía seleccionada la voz femenina (*Dra. Valeria / Femenina 1*), pero a la hora de llamar al paciente sonaba una voz masculina de hombre.
