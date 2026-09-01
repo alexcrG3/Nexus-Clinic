@@ -8,6 +8,22 @@
 
 ---
 
+### 🕒 [21:31 - 21:34] — Incidencia Crítica: Voz Masculina al Seleccionar Perfil Femenino (Dra. Valeria / Femenina 1)
+* **Síntoma Reportado:**  
+  El usuario tenía seleccionada la voz femenina (*Dra. Valeria / Femenina 1*), pero a la hora de llamar al paciente sonaba una voz masculina de hombre.
+* **Causa Raíz:**  
+  1. En `soundService.ts`, si existía un `selectedVoiceURI` guardado previamente en storage (ej: `Google español` o `Microsoft Raul`), la función tomaba ese URI con prioridad absoluta e ignoraba por completo el `activePersonaId` (*female-valeria*).
+  2. En `MediaSettingsModal.tsx`, al hacer clic en la tarjeta de perfil prediseñado (*Dra. Valeria*), se actualizaba el estado visual pero no se disparaba el guardado inmediato en `localStorage` / `onSave`, manteniendo la voz masculina previa en el storage global.
+  3. En `voicePersonas.ts`, la lista de nombres femeninos no contemplaba todas las variantes de Windows/Edge (ej: *Paola, Wendy, Andrea, Karina, Valerie, Francisca, Salomé, etc.*) y no forzaba modulación de frecuencia acústica aguda cuando el sintetizador del sistema solo contiene voces masculinas instaladas.
+* **Solución Aplicada y Blindaje:**  
+  1. `soundService.ts`: Ahora prioriza SIEMPRE el `activePersonaId` para que el género del locutor seleccionado mande sobre cualquier configuración residual.
+  2. `MediaSettingsModal.tsx`: Al hacer clic en cualquier tarjeta de locutor (ej: *Dra. Valeria*), se guarda inmediatamente en `localStorage` y en la base de datos sin requerir confirmación extra.
+  3. `voicePersonas.ts`: Catálogo expandido de voces femeninas globales y ajuste automático de pitch agudo (`Math.max(pitch, 1.45)`) si el navegador opera en un sistema operativo con sintetizadores genéricos, garantizando siempre timbre femenino.
+* **Lección / Acción Preventiva:**  
+  Las selecciones de locutor por perfil deben forzar su guardado de inmediato e imponer su género sobre cualquier identificador de voz predeterminado.
+
+---
+
 ### 🕒 [21:09 - 21:11] — Incidencias Críticas: Cierre Accidental por Clic en Fondo + Corrección de Diagnóstico de Fractura
 * **Incidencia 1 (Cierre Accidental y Pérdida de Datos al Cliquear en Fondo Oscuro):**  
   * *Síntoma:* Al hacer clic por error fuera del modal en el fondo oscuro (backdrop), el modal de la IA y el formulario de la consulta se cerraban inmediatamente, perdiendo la transcripción y el diagnóstico generado.

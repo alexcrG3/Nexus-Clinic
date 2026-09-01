@@ -238,7 +238,18 @@ export function MediaSettingsModal({
     const matchedURI = resolved.voice ? resolved.voice.voiceURI : "";
 
     if (matchedURI) setSelectedVoiceURI(matchedURI);
-    handleTestSelectedVoice(matchedURI, persona.rate, persona.pitch, persona.id);
+
+    // Guardado inmediato en storage y estado global
+    onSave({
+      selectedVoiceURI: matchedURI,
+      voiceRate: persona.rate,
+      voicePitch: resolved.pitch,
+      activePersonaId: persona.id,
+    });
+
+    toast.success(`🗣️ Perfil de voz activado: ${persona.title} (${persona.role})`);
+
+    handleTestSelectedVoice(matchedURI, persona.rate, resolved.pitch, persona.id);
   };
 
   const handleAddPreset = () => {

@@ -244,22 +244,24 @@ export function speakPatientCallAsync(
       let finalRate = rate;
       let finalPitch = pitch;
 
-      if (selectedVoiceURI && voices && voices.length > 0) {
+      // Si hay un perfil de locutor activo (ej: Dra. Valeria / Femenina), resolver prioritariamente la voz femenina
+      if (activePersonaId && voices && voices.length > 0) {
+        const resolved = resolveVoiceForPersona(activePersonaId, voices);
+        if (resolved.voice) {
+          chosenVoice = resolved.voice;
+          finalRate = resolved.rate;
+          finalPitch = resolved.pitch;
+        }
+      } else if (selectedVoiceURI && voices && voices.length > 0) {
         chosenVoice = voices.find((v) => v.voiceURI === selectedVoiceURI || v.name === selectedVoiceURI);
       }
-      
-      if (!chosenVoice && activePersonaId && voices && voices.length > 0) {
-        const resolved = resolveVoiceForPersona(activePersonaId, voices);
-        if (resolved.voice) chosenVoice = resolved.voice;
-        finalRate = resolved.rate;
-        finalPitch = resolved.pitch;
-      }
 
+      // Si no se encontró, usar resolución por defecto femenina (Dra. Valeria)
       if (!chosenVoice && voices && voices.length > 0) {
-        chosenVoice =
-          voices.find((v) => v.lang.startsWith("es-")) ||
-          voices.find((v) => v.lang.startsWith("es")) ||
-          voices[0];
+        const fallbackResolved = resolveVoiceForPersona("female-valeria", voices);
+        chosenVoice = fallbackResolved.voice || voices.find((v) => v.lang.startsWith("es")) || voices[0];
+        finalRate = fallbackResolved.rate;
+        finalPitch = fallbackResolved.pitch;
       }
 
       const textToSpeak = buildCallSpeechPhrase(patientName, doctorName, officeName, ticketCode, mode);

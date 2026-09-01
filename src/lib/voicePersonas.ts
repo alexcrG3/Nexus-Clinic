@@ -12,11 +12,12 @@ export interface VoicePersona {
 }
 
 /**
- * Identificación precisa de género para voces de síntesis de voz en navegadores (Chrome, Edge, Windows)
+ * Identificación precisa y exhaustiva de género para voces en navegadores (Chrome, Edge, Windows, Mac, Android)
  */
 export function isFemaleVoice(name: string): boolean {
   const lower = name.toLowerCase();
 
+  // Excepciones conocidas de Google
   if (lower.includes("estados unidos") && lower.includes("google")) {
     return true; // Google es-US es FEMENINA
   }
@@ -36,13 +37,25 @@ export function isFemaleVoice(name: string): boolean {
     lower.includes("enrique") ||
     lower.includes("carlos") ||
     lower.includes("mateo") ||
+    lower.includes("alejandro") ||
+    lower.includes("gabriel") ||
+    lower.includes("miguel") ||
+    lower.includes("fernando") ||
+    lower.includes("diego") ||
+    lower.includes("javier") ||
+    lower.includes("gonzalo") ||
+    lower.includes("rodrigo") ||
+    lower.includes("sebastian") ||
+    lower.includes("sebastián") ||
+    lower.includes("manuel") ||
     lower.includes("male") ||
-    lower.includes("hombre")
+    lower.includes("hombre") ||
+    lower.includes("guy")
   ) {
     return false;
   }
 
-  // Voces femeninas conocidas
+  // Voces femeninas conocidas de Microsoft, Google, Apple y Android
   return (
     lower.includes("sabina") ||
     lower.includes("paulina") ||
@@ -61,8 +74,45 @@ export function isFemaleVoice(name: string): boolean {
     lower.includes("mia") ||
     lower.includes("mía") ||
     lower.includes("zira") ||
+    lower.includes("paola") ||
+    lower.includes("wendy") ||
+    lower.includes("andrea") ||
+    lower.includes("karina") ||
+    lower.includes("valeria") ||
+    lower.includes("valerie") ||
+    lower.includes("victoria") ||
+    lower.includes("clara") ||
+    lower.includes("beatriz") ||
+    lower.includes("isabel") ||
+    lower.includes("alicia") ||
+    lower.includes("silvia") ||
+    lower.includes("teresa") ||
+    lower.includes("olga") ||
+    lower.includes("noemi") ||
+    lower.includes("noemí") ||
+    lower.includes("guadalupe") ||
+    lower.includes("esperanza") ||
+    lower.includes("carmen") ||
+    lower.includes("maria") ||
+    lower.includes("maría") ||
+    lower.includes("rosa") ||
+    lower.includes("ana") ||
+    lower.includes("lucia") ||
+    lower.includes("lucía") ||
+    lower.includes("marta") ||
+    lower.includes("irene") ||
+    lower.includes("francisca") ||
+    lower.includes("salome") ||
+    lower.includes("salomé") ||
+    lower.includes("luciana") ||
+    lower.includes("luisa") ||
+    lower.includes("catalina") ||
+    lower.includes("daniela") ||
+    lower.includes("gabriela") ||
     lower.includes("female") ||
-    lower.includes("mujer")
+    lower.includes("mujer") ||
+    lower.includes("girl") ||
+    lower.includes("cortana")
   );
 }
 
@@ -84,9 +134,13 @@ export const CLINIC_VOICE_PERSONAS: VoicePersona[] = [
       "Sofia",
       "Helena",
       "Laura",
+      "Paola",
+      "Wendy",
+      "Camila",
+      "Jimena",
     ],
-    pitch: 1.12,
-    rate: 0.86,
+    pitch: 1.25,
+    rate: 0.88,
   },
   {
     id: "female-mariana",
@@ -103,8 +157,10 @@ export const CLINIC_VOICE_PERSONAS: VoicePersona[] = [
       "Helena",
       "Laura",
       "Paulina",
+      "Paloma",
+      "Elena",
     ],
-    pitch: 1.30,
+    pitch: 1.35,
     rate: 0.90,
   },
   {
@@ -115,9 +171,17 @@ export const CLINIC_VOICE_PERSONAS: VoicePersona[] = [
     role: "Femenina Juvenil y Clara",
     badge: "👩 Femenina 3",
     description: "Tono brillante y de alta inteligibilidad en salas con ruido.",
-    preferredVoices: ["Paulina", "Dalia", "Google español de Estados Unidos", "Sabina", "Paloma"],
-    pitch: 1.52,
-    rate: 0.95,
+    preferredVoices: [
+      "Paulina",
+      "Dalia",
+      "Google español de Estados Unidos",
+      "Sabina",
+      "Paloma",
+      "Camila",
+      "Sofia",
+    ],
+    pitch: 1.50,
+    rate: 0.94,
   },
 
   // 3 VOCES MASCULINAS
@@ -129,7 +193,7 @@ export const CLINIC_VOICE_PERSONAS: VoicePersona[] = [
     role: "Masculino Barítono Grave",
     badge: "👨 Masculina 1",
     description: "Tono profundo, formal y con presencia hospitalaria clásica.",
-    preferredVoices: ["Google español", "Raul", "Jorge", "Pablo", "Alvaro", "David"],
+    preferredVoices: ["Google español", "Raul", "Jorge", "Pablo", "Alvaro", "David", "Carlos"],
     pitch: 0.65,
     rate: 0.82,
   },
@@ -141,7 +205,7 @@ export const CLINIC_VOICE_PERSONAS: VoicePersona[] = [
     role: "Masculino Profesional Cercano",
     badge: "👨 Masculina 2",
     description: "Locutor médico equilibrado, natural y respetuoso.",
-    preferredVoices: ["Raul", "Jorge", "Google español", "Pablo", "David"],
+    preferredVoices: ["Raul", "Jorge", "Google español", "Pablo", "David", "Alvaro"],
     pitch: 0.80,
     rate: 0.88,
   },
@@ -164,52 +228,82 @@ export function resolveVoiceForPersona(
   availableVoices: SpeechSynthesisVoice[]
 ): { voice?: SpeechSynthesisVoice; rate: number; pitch: number; persona: VoicePersona } {
   const persona = CLINIC_VOICE_PERSONAS.find((p) => p.id === personaId) || CLINIC_VOICE_PERSONAS[0];
+  const isFemale = persona.gender === "female";
+
   const esVoices = availableVoices.filter((v) => v.lang.toLowerCase().startsWith("es"));
   const femaleVoices = esVoices.filter((v) => isFemaleVoice(v.name));
   const maleVoices = esVoices.filter((v) => !isFemaleVoice(v.name));
 
   let chosenVoice: SpeechSynthesisVoice | undefined;
 
-  if (persona.gender === "female") {
-    const candidates = femaleVoices.length > 0 ? femaleVoices : esVoices;
-    if (candidates.length > 0) {
-      for (const pref of persona.preferredVoices) {
-        const found = candidates.find((v) => v.name.toLowerCase().includes(pref.toLowerCase()));
-        if (found) {
-          chosenVoice = found;
-          break;
-        }
-      }
-      if (!chosenVoice) {
-        const idx = ["female-valeria", "female-mariana", "female-sofia"].indexOf(persona.id);
-        chosenVoice = candidates[idx % candidates.length];
+  if (isFemale) {
+    // 1. Buscar en voces femeninas en español por nombres preferidos
+    for (const pref of persona.preferredVoices) {
+      const found = femaleVoices.find((v) => v.name.toLowerCase().includes(pref.toLowerCase()));
+      if (found) {
+        chosenVoice = found;
+        break;
       }
     }
+
+    // 2. Si no encontró una preferida, usar cualquier voz femenina en español disponible
+    if (!chosenVoice && femaleVoices.length > 0) {
+      const idx = ["female-valeria", "female-mariana", "female-sofia"].indexOf(persona.id);
+      chosenVoice = femaleVoices[idx >= 0 ? idx % femaleVoices.length : 0];
+    }
+
+    // 3. Si no hay voces femeninas en español pero hay en otros idiomas con soporte
+    if (!chosenVoice) {
+      const otherFemales = availableVoices.filter((v) => isFemaleVoice(v.name));
+      if (otherFemales.length > 0) {
+        chosenVoice = otherFemales[0];
+      }
+    }
+
+    // 4. Si el sistema únicamente tiene voces masculinas instaladas, usar la voz española
+    // pero ELEVAR el pitch dinámicamente a 1.45 para feminizar la frecuencia sonora
+    if (!chosenVoice && esVoices.length > 0) {
+      chosenVoice = esVoices[0];
+    }
   } else {
-    const candidates = maleVoices.length > 0 ? maleVoices : esVoices;
-    if (candidates.length > 0) {
-      for (const pref of persona.preferredVoices) {
-        const found = candidates.find((v) => v.name.toLowerCase().includes(pref.toLowerCase()));
-        if (found) {
-          chosenVoice = found;
-          break;
-        }
+    // Para personas masculinas
+    for (const pref of persona.preferredVoices) {
+      const found = maleVoices.find((v) => v.name.toLowerCase().includes(pref.toLowerCase()));
+      if (found) {
+        chosenVoice = found;
+        break;
       }
-      if (!chosenVoice) {
-        const idx = ["male-alejandro", "male-carlos", "male-gabriel"].indexOf(persona.id);
-        chosenVoice = candidates[idx % candidates.length];
-      }
+    }
+    if (!chosenVoice && maleVoices.length > 0) {
+      const idx = ["male-alejandro", "male-carlos", "male-gabriel"].indexOf(persona.id);
+      chosenVoice = maleVoices[idx >= 0 ? idx % maleVoices.length : 0];
+    }
+    if (!chosenVoice && esVoices.length > 0) {
+      chosenVoice = esVoices[0];
     }
   }
 
-  if (!chosenVoice && esVoices.length > 0) {
-    chosenVoice = esVoices[0];
+  if (!chosenVoice && availableVoices.length > 0) {
+    chosenVoice = availableVoices[0];
+  }
+
+  // Pitch dinámico: Si la persona es femenina pero la voz del sistema es masculina (o desconocida),
+  // asegurar que el tono sea agudo (mínimo 1.45) para garantizar voz femenina
+  let finalPitch = persona.pitch;
+  if (isFemale) {
+    if (!chosenVoice || !isFemaleVoice(chosenVoice.name)) {
+      finalPitch = Math.max(persona.pitch, 1.45);
+    }
+  } else {
+    if (chosenVoice && isFemaleVoice(chosenVoice.name)) {
+      finalPitch = Math.min(persona.pitch, 0.70);
+    }
   }
 
   return {
     voice: chosenVoice,
     rate: persona.rate,
-    pitch: persona.pitch,
+    pitch: finalPitch,
     persona,
   };
 }
