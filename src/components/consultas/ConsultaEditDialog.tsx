@@ -31,7 +31,11 @@ export const ConsultaEditDialog = ({
 }: ConsultaEditDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>Editar consulta</DialogTitle>
           <DialogDescription>

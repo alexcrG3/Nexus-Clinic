@@ -8,6 +8,21 @@
 
 ---
 
+### 🕒 [21:09 - 21:11] — Incidencias Críticas: Cierre Accidental por Clic en Fondo + Corrección de Diagnóstico de Fractura
+* **Incidencia 1 (Cierre Accidental y Pérdida de Datos al Cliquear en Fondo Oscuro):**  
+  * *Síntoma:* Al hacer clic por error fuera del modal en el fondo oscuro (backdrop), el modal de la IA y el formulario de la consulta se cerraban inmediatamente, perdiendo la transcripción y el diagnóstico generado.
+  * *Causa Raíz:* Las directivas de Radix UI / Shadcn `DialogContent` cierran por defecto el modal ante eventos `onPointerDownOutside` y `onInteractOutside`.
+  * *Solución Aplicada:* Se agregó `onPointerDownOutside={(e) => e.preventDefault()}` y `onInteractOutside={(e) => e.preventDefault()}` en `AiAmbientScribeModal.tsx`, `ConsultaFormDialog.tsx` y `ConsultaEditDialog.tsx`. Ahora es imposible cerrar el modal por error al hacer clic afuera; solo se cierra al presionar explícitamente "Cerrar".
+* **Incidencia 2 (Diagnóstico Erróneo de Caries en Caso de Fractura / Endodoncia):**  
+  * *Síntoma:* En una consulta donde se diagnosticaba *"fractura dental coronal complicada en pieza 21"*, la IA asignó erróneamente *"Caries profunda en pieza 21"*.
+  * *Causa Raíz:* En el analizador de respaldo, la condición `if (text.includes("caries") || piezaDental)` evaluaba `piezaDental` como verdadera, forzando la rama de Caries antes de evaluar si el caso trataba de fractura, endodoncia o traumatismo.
+  * *Solución Aplicada:* Se reordenó la jerarquía de diagnóstico patológico evaluando en orden de prioridad: Fractura coronal (`S02.5`), Pulpitis / Endodoncia (`K04.0`), Caries activa (`K02.1`), Periodoncia (`K05.1`), etc.
+* **Lección / Acción Preventiva:**  
+  1. Todo modal con captura de datos clínicos o audio DEBE bloquear `pointerDownOutside` para proteger la información del médico.
+  2. La presencia de un número de diente no debe asumir una patología por defecto sin evaluar primero las palabras clave diagnósticas principales.
+
+---
+
 ### 🕒 [20:54 - 20:58] — Implementación: Auto-Marcado de Piezas en el Odontograma y Alta Precisión Anatómica
 * **Objetivo / Requerimiento:**  
   El usuario solicitó que el Copiloto IA no solo genere el diagnóstico de forma hiper-específica (indicando la pieza dental exacta y síntomas), sino que además **marque automáticamente la pieza en el Odontograma del paciente** al aplicar la consulta.

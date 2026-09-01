@@ -234,7 +234,11 @@ export const AiAmbientScribeModal: React.FC<AiAmbientScribeModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[760px] p-0 overflow-hidden bg-background text-foreground border border-border shadow-2xl rounded-2xl max-h-[90vh] flex flex-col">
+      <DialogContent 
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        className="sm:max-w-[760px] p-0 overflow-hidden bg-background text-foreground border border-border shadow-2xl rounded-2xl max-h-[90vh] flex flex-col"
+      >
         {/* Header estilo Copiloto / Heidi */}
         <div className="bg-gradient-to-r from-primary/15 via-sky-500/10 to-background border-b border-border p-5 shrink-0">
           <div className="flex items-center justify-between">

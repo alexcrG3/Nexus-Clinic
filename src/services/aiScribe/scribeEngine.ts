@@ -203,16 +203,29 @@ ${transcript}
         };
       });
 
-    // 5. Diagnóstico ultra-específico
+    // 5. Diagnóstico ultra-específico basado en la patología REAL mencionada
     let diag = "Evaluación clínica general";
     let cie10 = "Z00.0";
     let examenFisico = "Paciente orientado, signos vitales estables.";
+    const piezaDesc = piezaDental ? `en ${piezaDental}` : "dental";
 
-    if (text.includes("caries") || piezaDental) {
-      const piezaDesc = piezaDental ? `en ${piezaDental}` : "dental";
+    if (text.includes("fractura") || text.includes("quebr") || text.includes("traumatismo")) {
+      const tienePulpar = text.includes("pulpar") || text.includes("exposicion") || text.includes("sangrado") || text.includes("endodoncia");
+      diag = `Fractura dental coronal ${tienePulpar ? "complicada con compromiso pulpar" : "simple"} ${piezaDesc}`;
+      cie10 = "S02.5";
+      examenFisico = `A la exploración intraoral se evidencia línea de fractura coronal ${piezaDesc}${tienePulpar ? " con exposición pulpar y sangrado leve visible" : ""}. Dolor agudo y respuesta positiva a la percusión.`;
+    } else if (text.includes("endodoncia") || text.includes("pulpitis") || text.includes("conducto") || text.includes("nervio")) {
+      diag = `Pulpitis irreversible / Compromiso pulpar agudo ${piezaDesc}`;
+      cie10 = "K04.0";
+      examenFisico = `A la exploración clínica se observa cámara pulpar afectada ${piezaDesc} con dolor severo e hiperalgesia a estímulos térmicos y percusión.`;
+    } else if (text.includes("caries") || text.includes("cavidad cariosa")) {
       diag = `Caries profunda ${piezaDesc} con sintomatología activa (${sintomasStr})`;
       cie10 = "K02.1";
-      examenFisico = `A la exploración intraoral se observa cavidad cariosa profunda ${piezaDesc} con respuesta sensible a la percusión vertical. Tejidos blandos peri-radiculares sin signos evidentes de celulitis o fístula.`;
+      examenFisico = `A la exploración intraoral se observa cavidad cariosa activa ${piezaDesc} con respuesta sensible a la percusión vertical. Tejidos blandos peri-radiculares sin signos evidentes de celulitis o fístula.`;
+    } else if (text.includes("gingivitis") || text.includes("periodontitis") || text.includes("sangrado de encias")) {
+      diag = `Gingivitis marginal crónica / Enfermedad periodontal`;
+      cie10 = "K05.1";
+      examenFisico = `Encías eritematosas y edematosas con sangrado al sondaje periodontal e índice de placa bacteriana elevado.`;
     } else if (text.includes("garganta") || text.includes("faringe") || text.includes("gripe")) {
       diag = "Faringoamigdalitis aguda eritematosa";
       cie10 = "J02.9";
@@ -221,6 +234,10 @@ ${transcript}
       diag = "Lumbago agudo con contractura muscular paravertebral";
       cie10 = "M54.5";
       examenFisico = "Contractura muscular paravertebral lumbar palpable con limitación antiálgica a la flexo-extensión. Maniobra de Lasègue negativa bilateral.";
+    } else if (piezaDental) {
+      diag = `Odontalgia aguda / Afección dental ${piezaDesc}`;
+      cie10 = "K08.8";
+      examenFisico = `Exploración clínica de ${piezaDesc} con sintomatología localizada y respuesta sensible a la exploración.`;
     }
 
     const paciente = patientName || "Paciente";
@@ -232,6 +249,8 @@ ${transcript}
       numeroDiente = parseInt(piezaMatch[2], 10);
     } else if (text.includes("46") || text.includes("muela de abajo a la derecha") || text.includes("molar inferior derecho")) {
       numeroDiente = 46;
+    } else if (text.includes("21") || text.includes("diente de adelante arriba") || text.includes("incisivo central superior")) {
+      numeroDiente = 21;
     } else if (text.includes("36") || text.includes("muela de abajo a la izquierda") || text.includes("molar inferior izquierdo")) {
       numeroDiente = 36;
     } else if (text.includes("16") || text.includes("muela de arriba a la derecha")) {
@@ -242,11 +261,12 @@ ${transcript}
 
     if (numeroDiente > 0) {
       let condicion: any = "caries";
-      if (text.includes("endodoncia") || text.includes("conducto")) condicion = "endodoncia";
+      if (text.includes("fractura") || text.includes("quebr")) condicion = "fractura";
+      else if (text.includes("endodoncia") || text.includes("conducto") || text.includes("pulpar")) condicion = "endodoncia";
       else if (text.includes("corona")) condicion = "corona";
-      else if (text.includes("fractura")) condicion = "fractura";
       else if (text.includes("calza") || text.includes("obturacion") || text.includes("restauracion")) condicion = "obturacion";
       else if (text.includes("extraccion") || text.includes("sacar")) condicion = "extraccion_indicada";
+      else if (text.includes("caries")) condicion = "caries";
 
       dientesDetectados.push({
         numero: numeroDiente,
