@@ -205,14 +205,16 @@ const ExpedientePaciente = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="identificacion" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="identificacion">Identificación</TabsTrigger>
-          <TabsTrigger value="antecedentes">Antecedentes</TabsTrigger>
-          <TabsTrigger value="consultas">Consultas</TabsTrigger>
-          <TabsTrigger value="tratamiento">Tratamiento</TabsTrigger>
-          <TabsTrigger value="documentos">Documentos</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="identificacion" className="w-full space-y-4">
+        <div className="w-full overflow-x-auto pb-1 -mb-1">
+          <TabsList className="inline-flex min-w-full sm:w-full sm:grid sm:grid-cols-5 h-auto p-1.5 bg-muted/60 rounded-2xl gap-1">
+            <TabsTrigger value="identificacion" className="px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap">Identificación</TabsTrigger>
+            <TabsTrigger value="antecedentes" className="px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap">Antecedentes</TabsTrigger>
+            <TabsTrigger value="consultas" className="px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap">Consultas</TabsTrigger>
+            <TabsTrigger value="tratamiento" className="px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap">Tratamiento</TabsTrigger>
+            <TabsTrigger value="documentos" className="px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap">Documentos</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="identificacion" className="space-y-4">
           <Card>

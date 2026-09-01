@@ -8,6 +8,20 @@
 
 ---
 
+### 🕒 [22:24 - 22:26] — Incidencia: Superposición y Montado de Texto en las Pestañas del Expediente en Pantallas Móviles
+* **Síntoma Reportado:**  
+  En vista móvil o pantallas estrechas, los títulos de las 6 pestañas del expediente (*Identificación, Antecedentes, Odontograma, Consultas, Consentimiento, Documentos*) se montaban unos encima de otros en un solo bloque ilegible.
+* **Causa Raíz:**  
+  `ExpedienteDetalle.tsx` y `ExpedientePaciente.tsx` utilizaban un grid estático `grid-cols-6` / `grid-cols-5` en `TabsList` sin permitir scroll horizontal ni tamaño mínimo por pestaña, forzando 6 palabras largas en columnas de menos de 40px de ancho.
+* **Solución Aplicada y Blindaje:**  
+  1. `ExpedienteDetalle.tsx` & `ExpedientePaciente.tsx`: Se encapsuló `TabsList` dentro de un contenedor con scroll horizontal fluido (`overflow-x-auto pb-1`).
+  2. En móviles se utiliza `inline-flex min-w-full gap-1` con `whitespace-nowrap` y padding generoso (`px-3.5 py-2`), permitiendo deslizar suavemente entre pestañas con el dedo o mouse sin que las letras se toquen.
+  3. En pantallas medianas y de escritorio (`sm:` / `md:`), se preserva la distribución de grid simétrica de 6 columnas.
+* **Lección / Acción Preventiva:**  
+  Todo contenedor de pestañas con más de 3 opciones o textos extensos debe contar con `whitespace-nowrap` y envoltorio `overflow-x-auto` para asegurar legibilidad en cualquier resolución móvil.
+
+---
+
 ### 🕒 [21:42 - 21:45] — Incidencia Crítica: Voz Masculina al Recargar la Página por Carga Asíncrona de Web Speech API
 * **Síntoma Reportado:**  
   La voz femenina funcionaba correctamente en la sesión, pero al presionar recargar en el navegador (F5 / reload) y llamar a un paciente, volvía a sonar la voz de hombre.

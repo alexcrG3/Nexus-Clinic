@@ -216,25 +216,35 @@ const ExpedienteDetalle = () => {
       {/* Patient Header Card */}
       <PatientHeader cliente={cliente} peso={expediente.pesoActual} />
 
-      <Tabs defaultValue="identificacion" className="w-full">
-        <TabsList className={`grid w-full ${showOdontograma ? 'grid-cols-6' : 'grid-cols-5'}`}>
-          <TabsTrigger value="identificacion">Identificación</TabsTrigger>
-          <TabsTrigger value="antecedentes">Antecedentes</TabsTrigger>
-          {showOdontograma && (
-            <TabsTrigger value="odontograma" className="flex items-center gap-1">
-              <Smile className="w-4 h-4" />
-              Odontograma
+      <Tabs defaultValue="identificacion" className="w-full space-y-4">
+        <div className="w-full overflow-x-auto pb-1 -mb-1">
+          <TabsList className={`inline-flex min-w-full sm:w-full sm:grid ${showOdontograma ? 'sm:grid-cols-6' : 'sm:grid-cols-5'} h-auto p-1.5 bg-muted/60 rounded-2xl gap-1`}>
+            <TabsTrigger value="identificacion" className="px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap">
+              Identificación
             </TabsTrigger>
-          )}
-          <TabsTrigger value="consultas" className="flex items-center gap-1.5 font-bold">
-            <span>Consultas</span>
-            <span className="rounded-full bg-primary/20 text-primary border border-primary/30 px-1.5 py-0.2 text-[9px] font-black">
-              ✨ IA
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="consentimiento">Consentimiento</TabsTrigger>
-          <TabsTrigger value="documentos">Documentos</TabsTrigger>
-        </TabsList>
+            <TabsTrigger value="antecedentes" className="px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap">
+              Antecedentes
+            </TabsTrigger>
+            {showOdontograma && (
+              <TabsTrigger value="odontograma" className="px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5">
+                <Smile className="w-4 h-4 text-sky-500" />
+                <span>Odontograma</span>
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="consultas" className="px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5">
+              <span>Consultas</span>
+              <span className="rounded-full bg-primary/20 text-primary border border-primary/30 px-1.5 py-0.2 text-[9px] font-black">
+                ✨ IA
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="consentimiento" className="px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap">
+              Consentimiento
+            </TabsTrigger>
+            <TabsTrigger value="documentos" className="px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl whitespace-nowrap">
+              Documentos
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="identificacion" className="space-y-4">
           <IdentificacionForm
